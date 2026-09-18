@@ -120,7 +120,7 @@ export default function AutoScroll({ enabled, speed, onSpeedChange }: AutoScroll
             step={0.5}
             value={speed}
             onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
-            className="w-24 h-2 rounded-full appearance-none cursor-pointer"
+            className="w-24 h-2 rounded-full appearance-none cursor-pointer autoscroll-slider"
             style={{
               background: `linear-gradient(to right, #10b981 ${((speed - 1) / 9) * 100}%, #374151 ${((speed - 1) / 9) * 100}%)`,
             }}
