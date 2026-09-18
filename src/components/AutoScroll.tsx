@@ -88,13 +88,13 @@ export default function AutoScroll({ enabled, speed, onSpeedChange }: AutoScroll
 
       {/* Expanded control bar */}
       <div
-        className="absolute bottom-0 right-0 flex items-center gap-3 bg-gray-900/90 backdrop-blur-xl rounded-full px-5 py-3 shadow-2xl border border-white/10"
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-gray-900/90 backdrop-blur-xl rounded-full px-5 py-3 shadow-2xl border border-white/10"
         style={{
           willChange: 'transform, opacity',
-          transformOrigin: 'bottom right',
+          transformOrigin: 'center bottom',
           transform: expanded
-            ? 'scale(1) translateX(0)'
-            : 'scale(0.15) translateX(40%)',
+            ? 'translateX(-50%) scale(1)'
+            : 'translateX(-50%) scale(0.15)',
           opacity: expanded ? 1 : 0,
           transition: expanded
             ? 'transform 0.35s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.2s ease-out'
