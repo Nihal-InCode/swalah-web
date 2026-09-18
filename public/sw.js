@@ -1,9 +1,9 @@
-const CACHE_NAME = 'yawmi-v1';
+const CACHE_NAME = 'yawmi-v2';
 const ASSETS = [
   '/',
   '/settings',
   '/admin',
-  '/icon.svg',
+  '/icon.png',
   '/manifest.json',
 ];
 
