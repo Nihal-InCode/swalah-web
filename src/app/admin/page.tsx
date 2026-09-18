@@ -17,6 +17,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [visitorStats, setVisitorStats] = useState<{ uniqueUsers: number; totalVisits: number }>({ uniqueUsers: 0, totalVisits: 0 });
 
   // Add form
   const [newTitle, setNewTitle] = useState("");
@@ -48,6 +49,10 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchDhikr();
+    fetch("/api/visitors")
+      .then((r) => r.json())
+      .then(setVisitorStats)
+      .catch(() => {});
   }, [fetchDhikr]);
 
   useEffect(() => {
@@ -252,7 +257,7 @@ export default function AdminPage() {
           <div>
             <h1 className="text-2xl font-bold text-white">{APP_NAME} - Admin Panel</h1>
             <p className="text-sm text-gray-400 mt-1">
-              Manage dhikr entries &middot; {dhikrList.length} total
+              Manage dhikr entries &middot; {dhikrList.length} total &middot; {visitorStats.uniqueUsers} users &middot; {visitorStats.totalVisits} visits
             </p>
           </div>
           <Link

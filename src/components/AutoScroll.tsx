@@ -18,7 +18,7 @@ export default function AutoScroll({ enabled, speed, onSpeedChange }: AutoScroll
     const delta = now - lastScrollRef.current;
     lastScrollRef.current = now;
 
-    const pixelsPerMs = speed * 0.5;
+    const pixelsPerMs = speed * 0.06;
     const scrollAmount = pixelsPerMs * delta;
 
     window.scrollBy({ top: scrollAmount, behavior: 'auto' });
@@ -68,7 +68,10 @@ export default function AutoScroll({ enabled, speed, onSpeedChange }: AutoScroll
           step={0.5}
           value={speed}
           onChange={(e) => onSpeedChange(parseFloat(e.target.value))}
-          className="w-24 accent-white"
+          className="w-24 h-2 rounded-full appearance-none cursor-pointer"
+          style={{
+            background: `linear-gradient(to right, #10b981 ${((speed - 1) / 9) * 100}%, #374151 ${((speed - 1) / 9) * 100}%)`,
+          }}
         />
         <span className="text-white/70 text-xs">🐇</span>
       </div>

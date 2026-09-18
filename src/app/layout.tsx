@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SettingsProvider } from "@/components/ThemeProvider";
 import Script from "next/script";
+import VisitorTracker from "@/components/VisitorTracker";
+import InstallPrompt from "@/components/InstallPrompt";
 
 export const metadata: Metadata = {
   title: "اليومي - Dhikr Reader",
@@ -36,6 +38,8 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body>
+        <VisitorTracker />
+        <InstallPrompt />
         <SettingsProvider>
           {children}
         </SettingsProvider>

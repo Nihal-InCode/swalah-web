@@ -37,3 +37,11 @@ model Settings {
 
   @@map("settings")
 }
+
+model Visitor {
+  ip        String   @id
+  lastVisit DateTime @default(now()) @map("last_visit")
+  visits    Int      @default(1)
+
+  @@map("visitor")
+}

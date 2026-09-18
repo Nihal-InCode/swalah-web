@@ -33,7 +33,7 @@ export default function DhikrSection({
     return match ? match[1] : null;
   };
 
-  const cleanTitle = dhikr.title.replace(/بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ/, '').trim();
+  const cleanTitle = dhikr.title.replace(/\(.*\)/g, '').replace(/بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ/, '').trim();
   const bismillah = extractBismillah(dhikr.title);
 
   const segments = colorizeText(
