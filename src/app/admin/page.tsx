@@ -17,7 +17,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [visitorStats, setVisitorStats] = useState<{ uniqueUsers: number; totalVisits: number }>({ uniqueUsers: 0, totalVisits: 0 });
+  const [visitorStats, setVisitorStats] = useState<{ uniqueUsers: number; totalVisits: number; recentVisitors: { ip: string; lastVisit: string; visits: number }[] }>({ uniqueUsers: 0, totalVisits: 0, recentVisitors: [] });
 
   // Add form
   const [newTitle, setNewTitle] = useState("");
@@ -270,6 +270,56 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+        {/* Visitor Stats */}
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">User Statistics</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-gray-900 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-emerald-400">{visitorStats.uniqueUsers}</div>
+              <div className="text-xs text-gray-500 mt-1">Unique Users</div>
+            </div>
+            <div className="bg-gray-900 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-blue-400">{visitorStats.totalVisits}</div>
+              <div className="text-xs text-gray-500 mt-1">Total Visits</div>
+            </div>
+            <div className="bg-gray-900 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-purple-400">{dhikrList.length}</div>
+              <div className="text-xs text-gray-500 mt-1">Dhikr Entries</div>
+            </div>
+            <div className="bg-gray-900 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-yellow-400">{visitorStats.recentVisitors.length > 0 ? Math.round(visitorStats.totalVisits / visitorStats.uniqueUsers) : 0}</div>
+              <div className="text-xs text-gray-500 mt-1">Avg Visits/User</div>
+            </div>
+          </div>
+          {visitorStats.recentVisitors.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-400 mb-3">Recent Visitors</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-500 border-b border-gray-700">
+                      <th className="pb-2 font-medium">IP Address</th>
+                      <th className="pb-2 font-medium">Last Visit</th>
+                      <th className="pb-2 font-medium">Visits</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-700/50">
+                    {visitorStats.recentVisitors.map((v) => (
+                      <tr key={v.ip} className="text-gray-300">
+                        <td className="py-2 font-mono text-xs">{v.ip}</td>
+                        <td className="py-2 text-xs">{new Date(v.lastVisit).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                        <td className="py-2">
+                          <span className="bg-gray-700 text-gray-300 text-xs px-2 py-0.5 rounded-full">{v.visits}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Actions Bar */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[200px]">

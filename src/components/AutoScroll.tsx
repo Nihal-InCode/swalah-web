@@ -18,7 +18,7 @@ export default function AutoScroll({ enabled, speed, onSpeedChange }: AutoScroll
     const delta = now - lastScrollRef.current;
     lastScrollRef.current = now;
 
-    const pixelsPerMs = speed * 0.06;
+    const pixelsPerMs = speed * 0.015;
     const scrollAmount = pixelsPerMs * delta;
 
     window.scrollBy({ top: scrollAmount, behavior: 'auto' });

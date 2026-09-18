@@ -78,12 +78,20 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: system-ui, -apple-system, sans-serif;
+  translate: no;
 }
 
 .arabic-text {
   direction: rtl;
   unicode-bidi: bidi-override;
   word-spacing: 0.1em;
+  translate: no;
+}
+
+[translate="no"],
+.arabic-text,
+.arabic-text * {
+  translate: no;
 }
 
 .ayah-marker {
