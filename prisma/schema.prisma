@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Dhikr {
+  id        Int      @id @default(autoincrement())
+  title     String
+  arabic    String
+  sortOrder Int      @default(0) @map("sort_order")
+  startAyah Int      @default(1) @map("start_ayah")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  audio     Audio?
+
+  @@map("dhikr")
+}
+
+model Audio {
+  id          Int    @id @default(autoincrement())
+  dhikrId     Int    @unique @map("dhikr_id")
+  driveFileId String @map("drive_file_id")
+  fileName    String @map("file_name")
+  duration    Int?
+  dhikr       Dhikr  @relation(fields: [dhikrId], references: [id], onDelete: Cascade)
+
+  @@map("audio")
+}
+
+model Settings {
+  key   String @id
+  value String
+
+  @@map("settings")
+}

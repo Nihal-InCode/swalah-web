@@ -1,0 +1,19 @@
+{
+  "name": "اليومي - Dhikr Reader",
+  "short_name": "اليومي",
+  "description": "A premium Arabic Dhikr reader app",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F0E1",
+  "theme_color": "#1B5E20",
+  "categories": ["education", "books"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
