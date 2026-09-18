@@ -17,7 +17,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [visitorStats, setVisitorStats] = useState<{ uniqueUsers: number; totalVisits: number; recentVisitors: { ip: string; lastVisit: string; visits: number }[] }>({ uniqueUsers: 0, totalVisits: 0, recentVisitors: [] });
+  const [visitorStats, setVisitorStats] = useState<{ uniqueUsers: number; onlineUsers: number; online: { ip: string; lastSeen: string; visits: number }[]; allVisitors: { ip: string; lastVisit: string; lastSeen: string; visits: number }[] }>({ uniqueUsers: 0, onlineUsers: 0, online: [], allVisitors: [] });
 
   // Add form
   const [newTitle, setNewTitle] = useState("");
@@ -49,10 +49,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchDhikr();
-    fetch("/api/visitors")
-      .then((r) => r.json())
-      .then(setVisitorStats)
-      .catch(() => {});
+    const fetchStats = () => {
+      fetch("/api/visitors")
+        .then((r) => r.json())
+        .then(setVisitorStats)
+        .catch(() => {});
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 15000);
+    return () => clearInterval(interval);
   }, [fetchDhikr]);
 
   useEffect(() => {
@@ -257,7 +262,7 @@ export default function AdminPage() {
           <div>
             <h1 className="text-2xl font-bold text-white">{APP_NAME} - Admin Panel</h1>
             <p className="text-sm text-gray-400 mt-1">
-              Manage dhikr entries &middot; {dhikrList.length} total &middot; {visitorStats.uniqueUsers} users &middot; {visitorStats.totalVisits} visits
+              Manage dhikr entries &middot; {dhikrList.length} total &middot; {visitorStats.onlineUsers} online
             </p>
           </div>
           <Link
@@ -273,50 +278,52 @@ export default function AdminPage() {
         {/* Visitor Stats */}
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
           <h2 className="text-lg font-semibold text-white mb-4">User Statistics</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-gray-900 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-emerald-400">{visitorStats.uniqueUsers}</div>
-              <div className="text-xs text-gray-500 mt-1">Unique Users</div>
+              <div className="text-xs text-gray-500 mt-1">Total Users Visited</div>
             </div>
             <div className="bg-gray-900 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-blue-400">{visitorStats.totalVisits}</div>
-              <div className="text-xs text-gray-500 mt-1">Total Visits</div>
-            </div>
-            <div className="bg-gray-900 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-purple-400">{dhikrList.length}</div>
-              <div className="text-xs text-gray-500 mt-1">Dhikr Entries</div>
-            </div>
-            <div className="bg-gray-900 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-400">{visitorStats.recentVisitors.length > 0 ? Math.round(visitorStats.totalVisits / visitorStats.uniqueUsers) : 0}</div>
-              <div className="text-xs text-gray-500 mt-1">Avg Visits/User</div>
+              <div className="text-2xl font-bold text-green-400">{visitorStats.onlineUsers}</div>
+              <div className="text-xs text-gray-500 mt-1">Currently Online</div>
             </div>
           </div>
-          {visitorStats.recentVisitors.length > 0 && (
+
+          {visitorStats.online.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-400 mb-3">Recent Visitors</h3>
+              <h3 className="text-sm font-medium text-gray-400 mb-3">Currently Online ({visitorStats.onlineUsers})</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-gray-500 border-b border-gray-700">
                       <th className="pb-2 font-medium">IP Address</th>
-                      <th className="pb-2 font-medium">Last Visit</th>
-                      <th className="pb-2 font-medium">Visits</th>
+                      <th className="pb-2 font-medium">Using Since</th>
+                      <th className="pb-2 font-medium">Duration</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-700/50">
-                    {visitorStats.recentVisitors.map((v) => (
-                      <tr key={v.ip} className="text-gray-300">
-                        <td className="py-2 font-mono text-xs">{v.ip}</td>
-                        <td className="py-2 text-xs">{new Date(v.lastVisit).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                        <td className="py-2">
-                          <span className="bg-gray-700 text-gray-300 text-xs px-2 py-0.5 rounded-full">{v.visits}</span>
-                        </td>
-                      </tr>
-                    ))}
+                    {visitorStats.online.map((v) => {
+                      const since = new Date(v.lastSeen);
+                      const mins = Math.floor((Date.now() - since.getTime()) / 60000);
+                      const durText = mins < 1 ? 'just now' : mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+                      return (
+                        <tr key={v.ip} className="text-gray-300">
+                          <td className="py-2 font-mono text-xs">{v.ip}</td>
+                          <td className="py-2 text-xs">{since.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
+                          <td className="py-2">
+                            <span className="bg-emerald-900 text-emerald-300 text-xs px-2 py-0.5 rounded-full">{durText}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </div>
+          )}
+
+          {visitorStats.online.length === 0 && (
+            <p className="text-gray-500 text-sm text-center py-4">No users currently online</p>
           )}
         </div>
 

@@ -12,11 +12,11 @@ export async function POST(request: NextRequest) {
   if (existing) {
     await prisma.visitor.update({
       where: { ip },
-      data: { lastVisit: new Date(), visits: { increment: 1 } },
+      data: { lastVisit: new Date(), lastSeen: new Date(), visits: { increment: 1 } },
     });
   } else {
     await prisma.visitor.create({
-      data: { ip, lastVisit: new Date(), visits: 1 },
+      data: { ip, lastVisit: new Date(), lastSeen: new Date(), visits: 1 },
     });
   }
 
@@ -25,17 +25,23 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+
   const total = await prisma.visitor.count();
-  const totalVisits = await prisma.visitor.aggregate({ _sum: { visits: true } });
-  const recentVisitors = await prisma.visitor.findMany({
+  const online = await prisma.visitor.findMany({
+    where: { lastSeen: { gte: fiveMinAgo } },
+    orderBy: { lastSeen: 'desc' },
+    select: { ip: true, lastSeen: true, visits: true },
+  });
+  const allVisitors = await prisma.visitor.findMany({
     orderBy: { lastVisit: 'desc' },
-    take: 10,
-    select: { ip: true, lastVisit: true, visits: true },
+    select: { ip: true, lastVisit: true, lastSeen: true, visits: true },
   });
 
   return Response.json({
     uniqueUsers: total,
-    totalVisits: totalVisits._sum.visits || 0,
-    recentVisitors,
+    onlineUsers: online.length,
+    online,
+    allVisitors,
   });
 }

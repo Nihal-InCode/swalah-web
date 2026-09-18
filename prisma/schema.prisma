@@ -41,6 +41,7 @@ model Settings {
 model Visitor {
   ip        String   @id
   lastVisit DateTime @default(now()) @map("last_visit")
+  lastSeen  DateTime @default(now()) @map("last_seen")
   visits    Int      @default(1)
 
   @@map("visitor")
