@@ -1,11 +1,15 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useSettings } from '@/components/ThemeProvider';
 import { READING_MODES, AVAILABLE_FONTS, APP_NAME } from '@/lib/constants';
 import Link from 'next/link';
 
 export default function SettingsPage() {
   const { settings, updateSetting, currentMode } = useSettings();
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const handleExportJson = async () => {
     const res = await fetch('/api/dhikr');
@@ -78,6 +82,59 @@ export default function SettingsPage() {
     }
 
     doc.save(`${APP_NAME}_export.pdf`);
+  };
+
+  const handleDownloadAudio = async () => {
+    if (!navigator.serviceWorker?.controller) return;
+    setIsDownloading(true);
+    setDownloadProgress(0);
+
+    try {
+      const res = await fetch('/api/audio-cache');
+      const { urls } = await res.json();
+      const total = urls.length;
+      let done = 0;
+
+      // Send in batches of 20
+      for (let i = 0; i < urls.length; i += 20) {
+        const batch = urls.slice(i, i + 20);
+        navigator.serviceWorker.controller.postMessage({
+          type: 'CACHE_AUDIO',
+          urls: batch,
+        });
+        done += batch.length;
+        setDownloadProgress(Math.round((done / total) * 100));
+      }
+
+      // Wait for cache to complete
+      const handler = (event: MessageEvent) => {
+        if (event.data?.type === 'AUDIO_CACHED') {
+          setIsDownloading(false);
+          setDownloadProgress(null);
+          navigator.serviceWorker.removeEventListener('message', handler);
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', handler);
+    } catch (err) {
+      console.error('Download failed:', err);
+      setIsDownloading(false);
+      setDownloadProgress(null);
+    }
+  };
+
+  const handleClearAudioCache = async () => {
+    if (!navigator.serviceWorker?.controller) return;
+    setIsClearing(true);
+
+    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_AUDIO_CACHE' });
+
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'AUDIO_CACHE_CLEARED') {
+        setIsClearing(false);
+        navigator.serviceWorker.removeEventListener('message', handler);
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', handler);
   };
 
   return (
@@ -306,6 +363,40 @@ export default function SettingsPage() {
               className="w-full p-3 rounded-lg border border-current/20 hover:bg-black/5 transition"
             >
               📄 Export as PDF
+            </button>
+          </div>
+        </section>
+
+        {/* Audio Cache */}
+        <section>
+          <h2 className="text-lg font-bold mb-4" style={{ color: currentMode.titleColor }}>
+            Audio Cache
+          </h2>
+          <p className="text-sm opacity-70 mb-3">
+            Download ayah audio to your device for offline listening
+          </p>
+          <div className="space-y-2">
+            <button
+              onClick={handleDownloadAudio}
+              disabled={isDownloading}
+              className="w-full p-3 rounded-lg border border-current/20 hover:bg-black/5 transition disabled:opacity-50"
+            >
+              {isDownloading ? `⏳ Downloading... ${downloadProgress}%` : '⬇️ Download All Ayahs'}
+            </button>
+            {isDownloading && (
+              <div className="w-full bg-black/10 rounded-full h-2 overflow-hidden">
+                <div
+                  className="h-full bg-green-600 transition-all duration-300"
+                  style={{ width: `${downloadProgress ?? 0}%` }}
+                />
+              </div>
+            )}
+            <button
+              onClick={handleClearAudioCache}
+              disabled={isClearing}
+              className="w-full p-3 rounded-lg border border-current/20 hover:bg-black/5 transition text-red-500 disabled:opacity-50"
+            >
+              {isClearing ? '⏳ Clearing...' : '🗑️ Clear Audio Cache'}
             </button>
           </div>
         </section>

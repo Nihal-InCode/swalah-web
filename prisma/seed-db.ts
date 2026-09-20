@@ -119,7 +119,7 @@ async function main() {
   }
 
   console.log('Fetching Quran data with ayah markers...\n');
-  const allEntries: { title: string; arabic: string; startAyah: number; sortOrder: number }[] = [];
+  const allEntries: { title: string; arabic: string; startAyah: number; sortOrder: number; surahNumber: number }[] = [];
 
   for (const req of SURAH_REQUESTS) {
     const surahNum = SURAH_MAP[req.name];
@@ -147,6 +147,7 @@ async function main() {
       arabic: arabicText.trim(),
       startAyah: Math.min(...wantedAyahs),
       sortOrder: allEntries.length,
+      surahNumber: surahNum,
     });
 
     console.log(` OK (${selectedAyahs.length} ayahs)`);

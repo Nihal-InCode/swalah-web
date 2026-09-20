@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       arabic: body.arabic,
       sortOrder: body.sortOrder ?? sortOrder,
       startAyah: body.startAyah ?? 1,
+      surahNumber: body.surahNumber ?? 1,
     },
   });
 

@@ -1,16 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSettings } from '@/components/ThemeProvider';
 import DhikrSection from '@/components/DhikrSection';
 import AutoScroll from '@/components/AutoScroll';
 import AdminGate from '@/components/AdminGate';
+import AyahAudioBar from '@/components/AyahAudioBar';
 import { DhikrData, APP_NAME } from '@/lib/constants';
+import { getAudioEngine, getGlobalAyahNumber, SURAH_NAMES_AR } from '@/lib/quran-audio';
 
 export default function ReaderPage() {
   const { settings, loading, updateSetting, currentMode } = useSettings();
   const [dhikrList, setDhikrList] = useState<DhikrData[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [playingAyah, setPlayingAyah] = useState(0);
+  const [audioBarVisible, setAudioBarVisible] = useState(true);
+  const [firstVisibleAyah, setFirstVisibleAyah] = useState<{ surah: number; local: number } | null>(null);
+  const sectionRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   const loadDhikr = useCallback(async () => {
     try {
@@ -55,6 +61,90 @@ export default function ReaderPage() {
     return () => window.removeEventListener('scroll', throttledScroll);
   }, []);
 
+  // IntersectionObserver to detect first visible ayah
+  useEffect(() => {
+    if (dhikrList.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const dhikrId = parseInt(entry.target.getAttribute('data-dhikr-id') || '0');
+            const dhikr = dhikrList.find(d => d.id === dhikrId);
+            if (dhikr) {
+              setFirstVisibleAyah({ surah: dhikr.surahNumber, local: dhikr.startAyah });
+            }
+            break;
+          }
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    // Observe all section elements
+    const timer = setTimeout(() => {
+      document.querySelectorAll('[data-dhikr-id]').forEach(el => {
+        observer.observe(el);
+      });
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, [dhikrList]);
+
+  // Wire up audio engine callbacks
+  useEffect(() => {
+    const engine = getAudioEngine();
+    engine.setCallbacks({
+      onAyahChange: (globalNum) => setPlayingAyah(globalNum),
+      onStateChange: (state) => setAudioBarVisible(state !== 'idle'),
+    });
+  }, []);
+
+  const handleAyahTap = useCallback((surahNumber: number, localAyah: number) => {
+    const engine = getAudioEngine();
+    const globalNum = getGlobalAyahNumber(surahNumber, localAyah);
+
+    // Build sequence from this ayah through all remaining ayahs in the dhikr list
+    const allAyahs: number[] = [];
+    let foundStart = false;
+
+    for (const dhikr of dhikrList) {
+      if (dhikr.surahNumber === surahNumber && !foundStart) {
+        // Start from the tapped ayah in this section
+        for (let a = localAyah; a <= 300; a++) {
+          try {
+            allAyahs.push(getGlobalAyahNumber(dhikr.surahNumber, a));
+          } catch { break; }
+        }
+        foundStart = true;
+      } else if (foundStart && dhikr.surahNumber === surahNumber) {
+        // Continue with subsequent sections of same surah
+        // (handled by the range above)
+      }
+    }
+
+    if (allAyahs.length > 0) {
+      engine.playSequence(allAyahs, 0);
+    } else {
+      engine.playAyah(surahNumber, localAyah);
+    }
+
+    // Scroll to the ayah
+    const el = document.querySelector(`[data-ayah="${localAyah}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [dhikrList]);
+
+  const handlePlayFromVisible = useCallback(() => {
+    if (firstVisibleAyah) {
+      handleAyahTap(firstVisibleAyah.surah, firstVisibleAyah.local);
+    }
+  }, [firstVisibleAyah, handleAyahTap]);
+
   if (loading || loadingData) {
     return (
       <div
@@ -74,6 +164,8 @@ export default function ReaderPage() {
         color: currentMode.text,
       }}
     >
+      <AyahAudioBar visible={audioBarVisible} onPlayFromVisible={handlePlayFromVisible} />
+
       <header
         className="sticky top-0 z-40 backdrop-blur-md border-b border-current/10 py-4 px-6"
         style={{ backgroundColor: `${currentMode.background}E6` }}
@@ -87,13 +179,25 @@ export default function ReaderPage() {
               {APP_NAME}
             </h1>
           </AdminGate>
-          <a
-            href="/settings"
-            className="p-2 rounded-full hover:bg-black/10 transition-colors"
-            style={{ color: currentMode.titleColor }}
-          >
-            ⚙️
-          </a>
+          <div className="flex items-center gap-2">
+            {!audioBarVisible && (
+              <button
+                onClick={handlePlayFromVisible}
+                className="p-2 rounded-full hover:bg-black/10 transition-colors text-lg"
+                style={{ color: currentMode.titleColor }}
+                title="Play from visible ayah"
+              >
+                ▶
+              </button>
+            )}
+            <a
+              href="/settings"
+              className="p-2 rounded-full hover:bg-black/10 transition-colors"
+              style={{ color: currentMode.titleColor }}
+            >
+              ⚙️
+            </a>
+          </div>
         </div>
       </header>
 
@@ -106,19 +210,28 @@ export default function ReaderPage() {
           </div>
         ) : (
           dhikrList.map((dhikr) => (
-            <DhikrSection
+            <div
               key={dhikr.id}
-              dhikr={dhikr}
-              fontFamily={settings.fontFamily}
-              fontSize={settings.fontSize}
-              lineHeight={settings.lineHeight}
-              textAlign={settings.textAlign}
-              colorAllah={settings.colorAllah}
-              colorAyahMarkers={settings.colorAyahMarkers}
-              titleColor={currentMode.titleColor}
-              textColor={currentMode.text}
-              showAudio={true}
-            />
+              ref={(el) => {
+                if (el) sectionRefs.current.set(dhikr.id, el);
+              }}
+              data-dhikr-id={dhikr.id}
+            >
+              <DhikrSection
+                dhikr={dhikr}
+                fontFamily={settings.fontFamily}
+                fontSize={settings.fontSize}
+                lineHeight={settings.lineHeight}
+                textAlign={settings.textAlign}
+                colorAllah={settings.colorAllah}
+                colorAyahMarkers={settings.colorAyahMarkers}
+                titleColor={currentMode.titleColor}
+                textColor={currentMode.text}
+                showAudio={true}
+                playingAyah={playingAyah}
+                onAyahTap={handleAyahTap}
+              />
+            </div>
           ))
         )}
       </main>

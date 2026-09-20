@@ -32,6 +32,7 @@ export async function PUT(
       arabic: body.arabic,
       sortOrder: body.sortOrder,
       startAyah: body.startAyah,
+      surahNumber: body.surahNumber,
     },
   });
 

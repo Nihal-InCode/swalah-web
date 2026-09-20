@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useRef, useCallback } from 'react';
 import { colorizeText, TextSegment } from '@/lib/text-colorizer';
 import { DhikrData } from '@/lib/constants';
+import { getAudioEngine, getGlobalAyahNumber } from '@/lib/quran-audio';
 
 interface DhikrSectionProps {
   dhikr: DhikrData;
@@ -14,6 +16,8 @@ interface DhikrSectionProps {
   titleColor: string;
   textColor: string;
   showAudio?: boolean;
+  playingAyah?: number;
+  onAyahTap?: (surahNumber: number, localAyah: number) => void;
 }
 
 export default function DhikrSection({
@@ -27,7 +31,12 @@ export default function DhikrSection({
   titleColor,
   textColor,
   showAudio = false,
+  playingAyah,
+  onAyahTap,
 }: DhikrSectionProps) {
+  const [tapMenu, setTapMenu] = useState<{ ayahIndex: number; x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const extractBismillah = (title: string): string | null => {
     const match = title.match(/(بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ)/);
     return match ? match[1] : null;
@@ -49,8 +58,23 @@ export default function DhikrSection({
     return `https://drive.google.com/uc?export=download&id=${dhikr.audio.driveFileId}`;
   };
 
+  const handleTextClick = useCallback((e: React.MouseEvent, ayahIndex: number) => {
+    if (!onAyahTap || !ayahIndex) return;
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    setTapMenu({
+      ayahIndex,
+      x: rect.left + rect.width / 2,
+      y: rect.top - 8,
+    });
+  }, [onAyahTap]);
+
+  const handlePlayAyah = useCallback((ayahIndex: number) => {
+    setTapMenu(null);
+    onAyahTap?.(dhikr.surahNumber, ayahIndex);
+  }, [dhikr.surahNumber, onAyahTap]);
+
   return (
-    <div className="py-6 px-4 md:px-8 border-b border-current/10">
+    <div ref={containerRef} className="py-6 px-4 md:px-8 border-b border-current/10">
       {dhikr.title && (
         <div className="mb-4">
           {bismillah && (
@@ -117,9 +141,18 @@ export default function DhikrSection({
           ) : (
             <span
               key={index}
+              onClick={segment.ayahIndex ? (e) => handleTextClick(e, segment.ayahIndex!) : undefined}
+              className={onAyahTap && segment.ayahIndex ? 'cursor-pointer' : ''}
+              data-ayah={segment.ayahIndex || undefined}
               style={{
                 color: segment.color,
                 fontWeight: segment.isBold ? 700 : undefined,
+                backgroundColor: playingAyah && segment.ayahIndex && playingAyah === getGlobalAyahNumber(dhikr.surahNumber, segment.ayahIndex)
+                  ? 'rgba(16, 185, 129, 0.15)'
+                  : undefined,
+                borderRadius: '4px',
+                transition: 'background-color 0.3s ease',
+                padding: '1px 2px',
               }}
             >
               {segment.text}
@@ -134,6 +167,32 @@ export default function DhikrSection({
             <source src={getAudioUrl()!} type="audio/mpeg" />
           </audio>
         </div>
+      )}
+
+      {/* Tap-to-play popup */}
+      {tapMenu && (
+        <>
+          <div
+            className="fixed inset-0 z-[60]"
+            onClick={() => setTapMenu(null)}
+          />
+          <div
+            className="fixed z-[70] flex items-center gap-1 bg-gray-900/95 backdrop-blur-sm rounded-full px-2 py-1.5 shadow-xl border border-white/10"
+            style={{
+              left: `${tapMenu.x}px`,
+              top: `${tapMenu.y}px`,
+              transform: 'translate(-50%, -100%)',
+            }}
+          >
+            <button
+              onClick={() => handlePlayAyah(tapMenu.ayahIndex)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-white text-sm rounded-full hover:bg-emerald-600 transition-colors"
+            >
+              <span className="text-base">▶</span>
+              <span>Play</span>
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

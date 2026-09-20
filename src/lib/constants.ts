@@ -72,6 +72,7 @@ export interface DhikrData {
   arabic: string;
   sortOrder: number;
   startAyah: number;
+  surahNumber: number;
   createdAt: string;
   updatedAt: string;
   audio?: {

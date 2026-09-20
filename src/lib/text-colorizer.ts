@@ -9,6 +9,14 @@ function toArabicNumber(n: number): string {
   return n.toString().split('').map(d => digits[parseInt(d)]).join('');
 }
 
+function arabicToNumber(arabic: string): number {
+  const map: Record<string, string> = {
+    '\u0660': '0', '\u0661': '1', '\u0662': '2', '\u0663': '3', '\u0664': '4',
+    '\u0665': '5', '\u0666': '6', '\u0667': '7', '\u0668': '8', '\u0669': '9',
+  };
+  return parseInt(arabic.split('').map(d => map[d] || d).join(''), 10);
+}
+
 function convertDotsToMarkers(text: string, startAyah: number): string {
   if (text.includes('\u06DD') || !text.includes('.')) return text;
 
@@ -37,6 +45,7 @@ export interface TextSegment {
   isBold: boolean;
   isAyahMarker?: boolean;
   ayahNumber?: string;
+  ayahIndex?: number;
 }
 
 export function colorizeText(
@@ -48,10 +57,6 @@ export function colorizeText(
 ): TextSegment[] {
   const normalizedText = convertDotsToMarkers(text, startAyah);
 
-  if (!colorAllah && !colorAyahMarkers) {
-    return [{ text: normalizedText, color: defaultColor, isBold: false }];
-  }
-
   const allMatches: { start: number; end: number; group: string; type: 'allah' | 'ayah' }[] = [];
 
   if (colorAllah) {
@@ -62,7 +67,8 @@ export function colorizeText(
     }
   }
 
-  if (colorAyahMarkers) {
+  // Always split by ayah markers (needed for ayahIndex assignment)
+  {
     const pattern = / ۝([٠-٩]+) /g;
     let match;
     while ((match = pattern.exec(normalizedText)) !== null) {
@@ -98,7 +104,8 @@ export function colorizeText(
 
     if (isAyahMarker) {
       const numMatch = match.group.match(/([٠-٩]+)/);
-      segments.push({ text: match.group, color: matchColor, isBold: false, isAyahMarker: true, ayahNumber: numMatch?.[1] || '' });
+      const markerColor = colorAyahMarkers ? matchColor : defaultColor;
+      segments.push({ text: match.group, color: markerColor, isBold: false, isAyahMarker: true, ayahNumber: numMatch?.[1] || '' });
     } else {
       segments.push({ text: match.group, color: matchColor, isBold });
     }
@@ -107,6 +114,17 @@ export function colorizeText(
 
   if (lastEnd < normalizedText.length) {
     segments.push({ text: normalizedText.substring(lastEnd), color: defaultColor, isBold: false });
+  }
+
+  // Post-pass: assign ayahIndex to each segment
+  let currentAyahIndex = startAyah;
+  for (const seg of segments) {
+    if (seg.isAyahMarker && seg.ayahNumber) {
+      currentAyahIndex = arabicToNumber(seg.ayahNumber);
+      seg.ayahIndex = currentAyahIndex;
+    } else {
+      seg.ayahIndex = currentAyahIndex;
+    }
   }
 
   return segments;

@@ -12,13 +12,14 @@ export async function POST(request: NextRequest) {
   if (replace) {
     await prisma.$transaction([
       prisma.dhikr.deleteMany(),
-      ...dhikrList.map((d: { title: string; arabic: string; sortOrder?: number; startAyah?: number }, i: number) =>
+      ...dhikrList.map((d: { title: string; arabic: string; sortOrder?: number; startAyah?: number; surahNumber?: number }, i: number) =>
         prisma.dhikr.create({
           data: {
             title: d.title,
             arabic: d.arabic,
             sortOrder: d.sortOrder ?? i,
             startAyah: d.startAyah ?? 1,
+            surahNumber: d.surahNumber ?? 1,
           },
         })
       ),
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
           arabic: d.arabic,
           sortOrder: order++,
           startAyah: d.startAyah ?? 1,
+          surahNumber: d.surahNumber ?? 1,
         },
       });
     }

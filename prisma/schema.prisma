@@ -8,14 +8,15 @@ datasource db {
 }
 
 model Dhikr {
-  id        Int      @id @default(autoincrement())
-  title     String
-  arabic    String
-  sortOrder Int      @default(0) @map("sort_order")
-  startAyah Int      @default(1) @map("start_ayah")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  audio     Audio?
+  id          Int      @id @default(autoincrement())
+  title       String
+  arabic      String
+  sortOrder   Int      @default(0) @map("sort_order")
+  startAyah   Int      @default(1) @map("start_ayah")
+  surahNumber Int      @default(1) @map("surah_number")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  audio       Audio?
 
   @@map("dhikr")
 }
