@@ -62,10 +62,18 @@ export default function ReaderPage() {
   useEffect(() => {
     const engine = getAudioEngine();
     const removeListener = engine.addListener({
-      onAyahChange: (globalNum) => setPlayingAyah(globalNum),
+      onAyahChange: (globalNum) => {
+        setPlayingAyah(globalNum);
+        if (continuous) {
+          const el = document.querySelector(`[data-global-ayah="${globalNum}"]`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      },
     });
     return removeListener;
-  }, []);
+  }, [continuous]);
 
   const handleAyahTap = useCallback((surahNumber: number, localAyah: number) => {
     const engine = getAudioEngine();

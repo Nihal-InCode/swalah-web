@@ -143,6 +143,7 @@ export default function DhikrSection({
               onClick={segment.ayahIndex ? (e) => handleTextClick(e, segment.ayahIndex!) : undefined}
               className={onAyahTap && segment.ayahIndex ? 'cursor-pointer' : ''}
               data-ayah={segment.ayahIndex || undefined}
+              data-global-ayah={segment.ayahIndex ? getGlobalAyahNumber(dhikr.surahNumber, segment.ayahIndex) : undefined}
               style={{
                 color: segment.color,
                 fontWeight: segment.isBold ? 700 : undefined,
