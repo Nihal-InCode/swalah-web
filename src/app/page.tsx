@@ -117,7 +117,7 @@ export default function ReaderPage() {
         color: currentMode.text,
       }}
     >
-      <AyahAudioBar visible={true} continuous={continuous} onContinuousChange={setContinuous} />
+      <AyahAudioBar continuous={continuous} onContinuousChange={setContinuous} />
 
       <header
         className="sticky z-40 backdrop-blur-md border-b border-current/10 py-4 px-6"

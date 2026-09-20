@@ -4,19 +4,22 @@ import { useState, useEffect, useCallback } from 'react';
 import { getAudioEngine, SURAH_NAMES_AR } from '@/lib/quran-audio';
 
 interface AyahAudioBarProps {
-  visible: boolean;
   continuous: boolean;
   onContinuousChange: (v: boolean) => void;
 }
 
-export default function AyahAudioBar({ visible, continuous, onContinuousChange }: AyahAudioBarProps) {
+export default function AyahAudioBar({ continuous, onContinuousChange }: AyahAudioBarProps) {
   const [state, setState] = useState<"idle" | "playing" | "paused">("idle");
   const [currentAyah, setCurrentAyah] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     const engine = getAudioEngine();
     const removeListener = engine.addListener({
-      onStateChange: (s) => setState(s),
+      onStateChange: (s) => {
+        setState(s);
+        if (s !== 'idle') setDismissed(false);
+      },
       onAyahChange: (globalNum) => setCurrentAyah(globalNum),
     });
     return removeListener;
@@ -24,6 +27,7 @@ export default function AyahAudioBar({ visible, continuous, onContinuousChange }
 
   const handleClose = useCallback(() => {
     getAudioEngine().stop();
+    setDismissed(true);
   }, []);
 
   const togglePlayPause = useCallback(() => {
@@ -55,24 +59,28 @@ export default function AyahAudioBar({ visible, continuous, onContinuousChange }
     return `Ayah ${globalNum}`;
   };
 
+  const show = state !== 'idle' || (state === 'idle' && currentAyah > 0 && !dismissed);
+
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-[80] bg-gray-900/95 backdrop-blur-xl border-b border-white/10 px-4 py-3 transition-transform duration-300"
+      className="fixed top-3 left-1/2 -translate-x-1/2 z-[80] transition-all duration-300 ease-out"
       style={{
-        transform: visible ? 'translateY(0)' : 'translateY(-100%)',
+        opacity: show ? 1 : 0,
+        transform: `translateX(-50%) translateY(${show ? '0' : '-20px'})`,
+        pointerEvents: show ? 'auto' : 'none',
       }}
     >
-      <div className="max-w-4xl mx-auto flex items-center gap-3">
+      <div className="flex items-center gap-3 bg-gray-900/95 backdrop-blur-xl rounded-2xl px-4 py-3 shadow-2xl shadow-black/40 border border-white/10">
         <button
           onClick={togglePlayPause}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-lg transition-colors shrink-0"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-lg transition-colors shrink-0 active:scale-95"
         >
           {state === 'playing' ? '⏸' : '▶'}
         </button>
 
         <div className="flex-1 min-w-0">
-          <p className="text-white text-sm font-medium truncate">
-            {currentAyah ? getAyahLabel(currentAyah) : 'Tap an ayah to play'}
+          <p className="text-white text-sm font-medium truncate max-w-[180px]">
+            {currentAyah ? getAyahLabel(currentAyah) : 'Tap an ayah'}
           </p>
           <p className="text-white/50 text-xs">
             {state === 'playing' ? (continuous ? 'Continuous' : 'Reciting...') : state === 'paused' ? 'Paused' : continuous ? 'Continuous mode' : 'Single mode'}
@@ -91,7 +99,7 @@ export default function AyahAudioBar({ visible, continuous, onContinuousChange }
 
         <button
           onClick={handleClose}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors shrink-0"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors shrink-0 active:scale-95"
         >
           ✕
         </button>
