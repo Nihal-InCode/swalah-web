@@ -60,11 +60,10 @@ export default function DhikrSection({
 
   const handleTextClick = useCallback((e: React.MouseEvent, ayahIndex: number) => {
     if (!onAyahTap || !ayahIndex) return;
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
     setTapMenu({
       ayahIndex,
-      x: rect.left + rect.width / 2,
-      y: rect.top - 8,
+      x: e.clientX,
+      y: e.clientY - 12,
     });
   }, [onAyahTap]);
 
