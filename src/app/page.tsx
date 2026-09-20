@@ -64,16 +64,22 @@ export default function ReaderPage() {
     const removeListener = engine.addListener({
       onAyahChange: (globalNum) => {
         setPlayingAyah(globalNum);
-        if (continuous) {
-          const el = document.querySelector(`[data-global-ayah="${globalNum}"]`);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }
       },
     });
     return removeListener;
-  }, [continuous]);
+  }, []);
+
+  // Scroll to playing ayah whenever it changes and continuous is on
+  useEffect(() => {
+    if (!continuous || playingAyah === 0) return;
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-global-ayah="${playingAyah}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [playingAyah, continuous]);
 
   const handleContinuousChange = useCallback((next: boolean) => {
     setContinuous(next);
