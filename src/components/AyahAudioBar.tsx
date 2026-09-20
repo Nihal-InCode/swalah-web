@@ -1,27 +1,22 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { getAudioEngine, SURAH_NAMES_AR, getGlobalAyahNumber } from '@/lib/quran-audio';
+import { getAudioEngine, SURAH_NAMES_AR } from '@/lib/quran-audio';
 
 interface AyahAudioBarProps {
   visible: boolean;
-  onPlayFromVisible?: () => void;
   continuous: boolean;
   onContinuousChange: (v: boolean) => void;
 }
 
-export default function AyahAudioBar({ visible, onPlayFromVisible, continuous, onContinuousChange }: AyahAudioBarProps) {
+export default function AyahAudioBar({ visible, continuous, onContinuousChange }: AyahAudioBarProps) {
   const [state, setState] = useState<"idle" | "playing" | "paused">("idle");
   const [currentAyah, setCurrentAyah] = useState(0);
-  const [showBar, setShowBar] = useState(false);
 
   useEffect(() => {
     const engine = getAudioEngine();
     const removeListener = engine.addListener({
-      onStateChange: (s) => {
-        setState(s);
-        setShowBar(s !== "idle");
-      },
+      onStateChange: (s) => setState(s),
       onAyahChange: (globalNum) => setCurrentAyah(globalNum),
     });
     return removeListener;
@@ -29,16 +24,13 @@ export default function AyahAudioBar({ visible, onPlayFromVisible, continuous, o
 
   const handleClose = useCallback(() => {
     getAudioEngine().stop();
-    setShowBar(false);
   }, []);
 
   const togglePlayPause = useCallback(() => {
     getAudioEngine().togglePlayPause();
   }, []);
 
-  // Determine surah name from global ayah number
   const getAyahLabel = (globalNum: number): string => {
-    // Find surah from global number
     const CUMULATIVE = [0];
     const COUNTS = [0, 7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128,
       111, 110, 98, 135, 112, 78, 118, 64, 77, 227, 93, 88, 69, 37, 35, 30, 20,
@@ -63,8 +55,6 @@ export default function AyahAudioBar({ visible, onPlayFromVisible, continuous, o
     return `Ayah ${globalNum}`;
   };
 
-  if (!showBar) return null;
-
   return (
     <div
       className="fixed top-0 left-0 right-0 z-[80] bg-gray-900/95 backdrop-blur-xl border-b border-white/10 px-4 py-3 transition-transform duration-300"
@@ -82,17 +72,17 @@ export default function AyahAudioBar({ visible, onPlayFromVisible, continuous, o
 
         <div className="flex-1 min-w-0">
           <p className="text-white text-sm font-medium truncate">
-            {currentAyah ? getAyahLabel(currentAyah) : 'Audio'}
+            {currentAyah ? getAyahLabel(currentAyah) : 'Tap an ayah to play'}
           </p>
           <p className="text-white/50 text-xs">
-            {state === 'playing' ? 'Reciting...' : state === 'paused' ? 'Paused' : 'Ready'}
+            {state === 'playing' ? (continuous ? 'Continuous' : 'Reciting...') : state === 'paused' ? 'Paused' : continuous ? 'Continuous mode' : 'Single mode'}
           </p>
         </div>
 
         <button
           onClick={() => onContinuousChange(!continuous)}
-          className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors shrink-0 text-sm ${
-            continuous ? 'bg-emerald-600 text-white' : 'hover:bg-white/10 text-white/40'
+          className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors shrink-0 text-sm border ${
+            continuous ? 'bg-emerald-600 border-emerald-500 text-white' : 'border-white/20 text-white/40 hover:bg-white/10'
           }`}
           title={continuous ? 'Continuous: ON' : 'Continuous: OFF'}
         >
