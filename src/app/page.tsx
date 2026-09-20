@@ -75,6 +75,29 @@ export default function ReaderPage() {
     return removeListener;
   }, [continuous]);
 
+  const handleContinuousChange = useCallback((next: boolean) => {
+    setContinuous(next);
+    const engine = getAudioEngine();
+    if (!next) {
+      engine.trimQueue();
+    } else {
+      const currentGlobal = engine.getCurrentAyah();
+      if (currentGlobal > 0) {
+        const remaining: number[] = [];
+        let foundCurrent = false;
+        for (const dhikr of dhikrList) {
+          const ayahs = extractAyahsFromText(dhikr.arabic, dhikr.startAyah);
+          for (const a of ayahs) {
+            const g = getGlobalAyahNumber(dhikr.surahNumber, a);
+            if (g === currentGlobal) { foundCurrent = true; continue; }
+            if (foundCurrent) remaining.push(g);
+          }
+        }
+        engine.extendQueue(remaining);
+      }
+    }
+  }, [dhikrList]);
+
   const handleAyahTap = useCallback((surahNumber: number, localAyah: number) => {
     const engine = getAudioEngine();
     if (!continuous) {
@@ -125,7 +148,7 @@ export default function ReaderPage() {
         color: currentMode.text,
       }}
     >
-      <AyahAudioBar continuous={continuous} onContinuousChange={setContinuous} />
+      <AyahAudioBar continuous={continuous} onContinuousChange={handleContinuousChange} />
 
       <header
         className="sticky z-40 backdrop-blur-md border-b border-current/10 py-4 px-6"

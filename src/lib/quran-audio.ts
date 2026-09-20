@@ -93,6 +93,9 @@ class AyahAudioEngine {
   private queue: number[] = [];
   private queueIndex = -1;
   private state: PlaybackState = "idle";
+  private lastAyah = 0;
+  private lastSurah = 0;
+  private lastLocal = 0;
   private listeners: Set<AyahAudioCallbacks> = new Set();
 
   private ensureAudio() {
@@ -123,6 +126,8 @@ class AyahAudioEngine {
 
   playAyah(surahNumber: number, localAyah: number) {
     const globalNum = getGlobalAyahNumber(surahNumber, localAyah);
+    this.lastSurah = surahNumber;
+    this.lastLocal = localAyah;
     this.queue = [globalNum];
     this.queueIndex = 0;
     this.playCurrent();
@@ -141,6 +146,7 @@ class AyahAudioEngine {
     }
 
     const globalNum = this.queue[this.queueIndex];
+    this.lastAyah = globalNum;
     const audio = this.ensureAudio();
     audio.src = getAyahAudioUrl(globalNum);
     audio.load();
@@ -149,7 +155,6 @@ class AyahAudioEngine {
     this.listeners.forEach(cb => cb.onAyahChange?.(globalNum));
 
     audio.play().catch(() => {
-      // Autoplay blocked — user needs to interact first
       this.setState("paused");
     });
   }
@@ -184,6 +189,21 @@ class AyahAudioEngine {
       this.pause();
     } else if (this.state === "paused") {
       this.resume();
+    } else if (this.state === "idle" && this.lastSurah > 0) {
+      this.playAyah(this.lastSurah, this.lastLocal);
+    }
+  }
+
+  trimQueue() {
+    if (this.queueIndex >= 0 && this.queueIndex < this.queue.length) {
+      this.queue = [this.queue[this.queueIndex]];
+      this.queueIndex = 0;
+    }
+  }
+
+  extendQueue(additionalAyahs: number[]) {
+    if (this.queueIndex >= 0 && this.queueIndex < this.queue.length) {
+      this.queue = [...this.queue.slice(0, this.queueIndex + 1), ...additionalAyahs];
     }
   }
 
