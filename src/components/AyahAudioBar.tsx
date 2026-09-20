@@ -63,14 +63,14 @@ export default function AyahAudioBar({ continuous, onContinuousChange }: AyahAud
 
   return (
     <div
-      className="fixed top-3 left-1/2 -translate-x-1/2 z-[80] transition-all duration-300 ease-out"
+      className="fixed bottom-4 left-0 right-0 z-[80] flex justify-center px-4 transition-all duration-300 ease-out"
       style={{
         opacity: show ? 1 : 0,
-        transform: `translateX(-50%) translateY(${show ? '0' : '-20px'})`,
+        transform: `translateY(${show ? '0' : '20px'})`,
         pointerEvents: show ? 'auto' : 'none',
       }}
     >
-      <div className="flex items-center gap-3 bg-gray-900/95 backdrop-blur-xl rounded-2xl px-4 py-3 shadow-2xl shadow-black/40 border border-white/10">
+      <div className="flex items-center gap-3 bg-gray-900/95 backdrop-blur-xl rounded-2xl px-4 py-3 shadow-2xl shadow-black/40 border border-white/10 w-full max-w-sm">
         <button
           onClick={togglePlayPause}
           className="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-lg transition-colors shrink-0 active:scale-95"
