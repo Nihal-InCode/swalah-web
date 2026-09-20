@@ -117,13 +117,31 @@ export function colorizeText(
   }
 
   // Post-pass: assign ayahIndex to each segment
-  let currentAyahIndex = startAyah;
-  for (const seg of segments) {
-    if (seg.isAyahMarker && seg.ayahNumber) {
-      currentAyahIndex = arabicToNumber(seg.ayahNumber);
-      seg.ayahIndex = currentAyahIndex;
-    } else {
-      seg.ayahIndex = currentAyahIndex;
+  // Markers (۝١) are at the END of an ayah, so text BEFORE marker N = ayah N
+  // and text AFTER marker N = ayah of the NEXT marker
+  const markerData: { index: number; num: number }[] = [];
+  for (let i = 0; i < segments.length; i++) {
+    if (segments[i].isAyahMarker && segments[i].ayahNumber) {
+      markerData.push({ index: i, num: arabicToNumber(segments[i].ayahNumber!) });
+    }
+  }
+
+  if (markerData.length === 0) {
+    for (const seg of segments) seg.ayahIndex = startAyah;
+  } else {
+    // Text before first marker = startAyah
+    for (let i = 0; i < markerData[0].index; i++) {
+      segments[i].ayahIndex = startAyah;
+    }
+    // For each marker: text after it (until next marker) = next marker's ayah
+    for (let m = 0; m < markerData.length; m++) {
+      const { index, num } = markerData[m];
+      segments[index].ayahIndex = num;
+      const nextEnd = m < markerData.length - 1 ? markerData[m + 1].index : segments.length;
+      const nextAyahNum = m < markerData.length - 1 ? markerData[m + 1].num : num + 1;
+      for (let i = index + 1; i < nextEnd; i++) {
+        segments[i].ayahIndex = nextAyahNum;
+      }
     }
   }
 
