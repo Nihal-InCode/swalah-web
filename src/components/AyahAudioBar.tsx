@@ -15,13 +15,14 @@ export default function AyahAudioBar({ visible, onPlayFromVisible }: AyahAudioBa
 
   useEffect(() => {
     const engine = getAudioEngine();
-    engine.setCallbacks({
+    const removeListener = engine.addListener({
       onStateChange: (s) => {
         setState(s);
         setShowBar(s !== "idle");
       },
       onAyahChange: (globalNum) => setCurrentAyah(globalNum),
     });
+    return removeListener;
   }, []);
 
   const handleClose = useCallback(() => {

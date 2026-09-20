@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yawmi-v3';
+const CACHE_NAME = 'yawmi-v4';
 const AUDIO_CACHE = 'yawmi-audio-v1';
 const ASSETS = [
   '/',

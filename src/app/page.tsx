@@ -7,7 +7,7 @@ import AutoScroll from '@/components/AutoScroll';
 import AdminGate from '@/components/AdminGate';
 import AyahAudioBar from '@/components/AyahAudioBar';
 import { DhikrData, APP_NAME } from '@/lib/constants';
-import { getAudioEngine, getGlobalAyahNumber, SURAH_NAMES_AR } from '@/lib/quran-audio';
+import { getAudioEngine } from '@/lib/quran-audio';
 
 export default function ReaderPage() {
   const { settings, loading, updateSetting, currentMode } = useSettings();
@@ -97,47 +97,17 @@ export default function ReaderPage() {
   // Wire up audio engine callbacks
   useEffect(() => {
     const engine = getAudioEngine();
-    engine.setCallbacks({
+    const removeListener = engine.addListener({
       onAyahChange: (globalNum) => setPlayingAyah(globalNum),
       onStateChange: (state) => setAudioBarVisible(state !== 'idle'),
     });
+    return removeListener;
   }, []);
 
   const handleAyahTap = useCallback((surahNumber: number, localAyah: number) => {
     const engine = getAudioEngine();
-    const globalNum = getGlobalAyahNumber(surahNumber, localAyah);
-
-    // Build sequence from this ayah through all remaining ayahs in the dhikr list
-    const allAyahs: number[] = [];
-    let foundStart = false;
-
-    for (const dhikr of dhikrList) {
-      if (dhikr.surahNumber === surahNumber && !foundStart) {
-        // Start from the tapped ayah in this section
-        for (let a = localAyah; a <= 300; a++) {
-          try {
-            allAyahs.push(getGlobalAyahNumber(dhikr.surahNumber, a));
-          } catch { break; }
-        }
-        foundStart = true;
-      } else if (foundStart && dhikr.surahNumber === surahNumber) {
-        // Continue with subsequent sections of same surah
-        // (handled by the range above)
-      }
-    }
-
-    if (allAyahs.length > 0) {
-      engine.playSequence(allAyahs, 0);
-    } else {
-      engine.playAyah(surahNumber, localAyah);
-    }
-
-    // Scroll to the ayah
-    const el = document.querySelector(`[data-ayah="${localAyah}"]`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [dhikrList]);
+    engine.playAyah(surahNumber, localAyah);
+  }, []);
 
   const handlePlayFromVisible = useCallback(() => {
     if (firstVisibleAyah) {

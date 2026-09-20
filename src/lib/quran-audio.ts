@@ -60,7 +60,7 @@ export const SURAH_NAMES_AR: Record<number, string> = {
 // Audio engine singleton
 type PlaybackState = "idle" | "playing" | "paused";
 
-interface AyahAudioCallbacks {
+export interface AyahAudioCallbacks {
   onAyahChange?: (globalNumber: number) => void;
   onStateChange?: (state: PlaybackState) => void;
   onPlaybackEnd?: () => void;
@@ -72,7 +72,7 @@ class AyahAudioEngine {
   private queue: number[] = [];
   private queueIndex = -1;
   private state: PlaybackState = "idle";
-  private callbacks: AyahAudioCallbacks = {};
+  private listeners: Set<AyahAudioCallbacks> = new Set();
 
   private ensureAudio() {
     if (!this.audio) {
@@ -81,15 +81,23 @@ class AyahAudioEngine {
       this.audio.addEventListener("ended", () => this.handleEnded());
       this.audio.addEventListener("timeupdate", () => {
         if (this.audio) {
-          this.callbacks.onTimeUpdate?.(this.audio.currentTime, this.audio.duration || 0);
+          const t = this.audio.currentTime;
+          const d = this.audio.duration || 0;
+          this.listeners.forEach(cb => cb.onTimeUpdate?.(t, d));
         }
       });
     }
     return this.audio;
   }
 
+  addListener(cb: AyahAudioCallbacks): () => void {
+    this.listeners.add(cb);
+    return () => { this.listeners.delete(cb); };
+  }
+
+  // Keep setCallbacks for backward compat but it now adds a listener
   setCallbacks(cb: AyahAudioCallbacks) {
-    this.callbacks = cb;
+    this.listeners.add(cb);
   }
 
   playAyah(surahNumber: number, localAyah: number) {
@@ -117,7 +125,7 @@ class AyahAudioEngine {
     audio.load();
 
     this.setState("playing");
-    this.callbacks.onAyahChange?.(globalNum);
+    this.listeners.forEach(cb => cb.onAyahChange?.(globalNum));
 
     audio.play().catch(() => {
       // Autoplay blocked — user needs to interact first
@@ -131,13 +139,13 @@ class AyahAudioEngine {
       this.playCurrent();
     } else {
       this.setState("idle");
-      this.callbacks.onPlaybackEnd?.();
+      this.listeners.forEach(cb => cb.onPlaybackEnd?.());
     }
   }
 
   private setState(state: PlaybackState) {
     this.state = state;
-    this.callbacks.onStateChange?.(state);
+    this.listeners.forEach(cb => cb.onStateChange?.(state));
   }
 
   pause() {

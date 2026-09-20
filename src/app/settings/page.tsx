@@ -85,33 +85,42 @@ export default function SettingsPage() {
   };
 
   const handleDownloadAudio = async () => {
-    if (!navigator.serviceWorker?.controller) return;
     setIsDownloading(true);
     setDownloadProgress(0);
 
     try {
-      const res = await fetch('/api/audio-cache');
-      const { urls } = await res.json();
-      const total = urls.length;
-      let done = 0;
-
-      // Send in batches of 20
-      for (let i = 0; i < urls.length; i += 20) {
-        const batch = urls.slice(i, i + 20);
-        navigator.serviceWorker.controller.postMessage({
-          type: 'CACHE_AUDIO',
-          urls: batch,
-        });
-        done += batch.length;
-        setDownloadProgress(Math.round((done / total) * 100));
+      const reg = await navigator.serviceWorker?.ready;
+      if (!reg?.active) {
+        setIsDownloading(false);
+        setDownloadProgress(null);
+        return;
       }
 
-      // Wait for cache to complete
+      const res = await fetch('/api/audio-cache');
+      const { urls, count } = await res.json();
+      const total = urls.length;
+      const BATCH_SIZE = 15;
+      let batchesSent = 0;
+      const totalBatches = Math.ceil(total / BATCH_SIZE);
+
+      // Send all batches at once — SW handles them in parallel
+      for (let i = 0; i < urls.length; i += BATCH_SIZE) {
+        const batch = urls.slice(i, i + BATCH_SIZE);
+        reg.active.postMessage({ type: 'CACHE_AUDIO', urls: batch });
+        batchesSent++;
+      }
+
+      // Track completion — SW sends AUDIO_CACHED per batch
+      let completedBatches = 0;
       const handler = (event: MessageEvent) => {
         if (event.data?.type === 'AUDIO_CACHED') {
-          setIsDownloading(false);
-          setDownloadProgress(null);
-          navigator.serviceWorker.removeEventListener('message', handler);
+          completedBatches++;
+          setDownloadProgress(Math.round((completedBatches / totalBatches) * 100));
+          if (completedBatches >= totalBatches) {
+            setIsDownloading(false);
+            setDownloadProgress(null);
+            navigator.serviceWorker.removeEventListener('message', handler);
+          }
         }
       };
       navigator.serviceWorker.addEventListener('message', handler);
@@ -123,18 +132,27 @@ export default function SettingsPage() {
   };
 
   const handleClearAudioCache = async () => {
-    if (!navigator.serviceWorker?.controller) return;
     setIsClearing(true);
-
-    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_AUDIO_CACHE' });
-
-    const handler = (event: MessageEvent) => {
-      if (event.data?.type === 'AUDIO_CACHE_CLEARED') {
+    try {
+      const reg = await navigator.serviceWorker?.ready;
+      if (!reg?.active) {
         setIsClearing(false);
-        navigator.serviceWorker.removeEventListener('message', handler);
+        return;
       }
-    };
-    navigator.serviceWorker.addEventListener('message', handler);
+
+      reg.active.postMessage({ type: 'CLEAR_AUDIO_CACHE' });
+
+      const handler = (event: MessageEvent) => {
+        if (event.data?.type === 'AUDIO_CACHE_CLEARED') {
+          setIsClearing(false);
+          navigator.serviceWorker.removeEventListener('message', handler);
+        }
+      };
+      navigator.serviceWorker.addEventListener('message', handler);
+    } catch (err) {
+      console.error('Clear failed:', err);
+      setIsClearing(false);
+    }
   };
 
   return (
