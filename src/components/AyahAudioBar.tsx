@@ -6,9 +6,11 @@ import { getAudioEngine, SURAH_NAMES_AR, getGlobalAyahNumber } from '@/lib/quran
 interface AyahAudioBarProps {
   visible: boolean;
   onPlayFromVisible?: () => void;
+  continuous: boolean;
+  onContinuousChange: (v: boolean) => void;
 }
 
-export default function AyahAudioBar({ visible, onPlayFromVisible }: AyahAudioBarProps) {
+export default function AyahAudioBar({ visible, onPlayFromVisible, continuous, onContinuousChange }: AyahAudioBarProps) {
   const [state, setState] = useState<"idle" | "playing" | "paused">("idle");
   const [currentAyah, setCurrentAyah] = useState(0);
   const [showBar, setShowBar] = useState(false);
@@ -86,6 +88,16 @@ export default function AyahAudioBar({ visible, onPlayFromVisible }: AyahAudioBa
             {state === 'playing' ? 'Reciting...' : state === 'paused' ? 'Paused' : 'Ready'}
           </p>
         </div>
+
+        <button
+          onClick={() => onContinuousChange(!continuous)}
+          className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors shrink-0 text-sm ${
+            continuous ? 'bg-emerald-600 text-white' : 'hover:bg-white/10 text-white/40'
+          }`}
+          title={continuous ? 'Continuous: ON' : 'Continuous: OFF'}
+        >
+          🔁
+        </button>
 
         <button
           onClick={handleClose}

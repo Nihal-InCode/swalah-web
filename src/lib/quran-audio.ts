@@ -30,6 +30,27 @@ export function getSurahAyahCount(surahNumber: number): number {
   return SURAH_AYAH_COUNTS[surahNumber] || 0;
 }
 
+function arabicToNumber(arabic: string): number {
+  const map: Record<string, string> = {
+    '\u0660': '0', '\u0661': '1', '\u0662': '2', '\u0663': '3', '\u0664': '4',
+    '\u0665': '5', '\u0666': '6', '\u0667': '7', '\u0668': '8', '\u0669': '9',
+  };
+  return parseInt(arabic.split('').map(d => map[d] || d).join(''), 10);
+}
+
+export function extractAyahsFromText(text: string, startAyah: number): number[] {
+  const markerPattern = /\u06DD([\u0660-\u0669]+)/g;
+  const ayahs: number[] = [];
+  let match;
+  while ((match = markerPattern.exec(text)) !== null) {
+    ayahs.push(arabicToNumber(match[1]));
+  }
+  if (ayahs.length === 0 && startAyah) {
+    ayahs.push(startAyah);
+  }
+  return ayahs;
+}
+
 // Surah names in Arabic for display
 export const SURAH_NAMES_AR: Record<number, string> = {
   1: "الفاتحة", 2: "البقرة", 3: "آل عمران", 4: "النساء", 5: "المائدة",

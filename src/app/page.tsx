@@ -7,7 +7,7 @@ import AutoScroll from '@/components/AutoScroll';
 import AdminGate from '@/components/AdminGate';
 import AyahAudioBar from '@/components/AyahAudioBar';
 import { DhikrData, APP_NAME } from '@/lib/constants';
-import { getAudioEngine } from '@/lib/quran-audio';
+import { getAudioEngine, getGlobalAyahNumber, extractAyahsFromText } from '@/lib/quran-audio';
 
 export default function ReaderPage() {
   const { settings, loading, updateSetting, currentMode } = useSettings();
@@ -16,6 +16,7 @@ export default function ReaderPage() {
   const [playingAyah, setPlayingAyah] = useState(0);
   const [audioBarVisible, setAudioBarVisible] = useState(true);
   const [firstVisibleAyah, setFirstVisibleAyah] = useState<{ surah: number; local: number } | null>(null);
+  const [continuous, setContinuous] = useState(false);
   const sectionRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   const loadDhikr = useCallback(async () => {
@@ -106,8 +107,34 @@ export default function ReaderPage() {
 
   const handleAyahTap = useCallback((surahNumber: number, localAyah: number) => {
     const engine = getAudioEngine();
-    engine.playAyah(surahNumber, localAyah);
-  }, []);
+    if (!continuous) {
+      engine.playAyah(surahNumber, localAyah);
+      return;
+    }
+    // Continuous: build queue from tapped ayah through all remaining dhikr entries
+    const allGlobalAyahs: number[] = [];
+    let foundStart = false;
+    for (const dhikr of dhikrList) {
+      const ayahs = extractAyahsFromText(dhikr.arabic, dhikr.startAyah);
+      if (dhikr.surahNumber === surahNumber && !foundStart) {
+        const startIdx = ayahs.indexOf(localAyah);
+        const from = startIdx >= 0 ? startIdx : 0;
+        for (let i = from; i < ayahs.length; i++) {
+          allGlobalAyahs.push(getGlobalAyahNumber(dhikr.surahNumber, ayahs[i]));
+        }
+        foundStart = true;
+      } else if (foundStart || dhikrList.indexOf(dhikr) > dhikrList.findIndex(d => d.surahNumber === surahNumber)) {
+        for (const a of ayahs) {
+          allGlobalAyahs.push(getGlobalAyahNumber(dhikr.surahNumber, a));
+        }
+      }
+    }
+    if (allGlobalAyahs.length > 0) {
+      engine.playSequence(allGlobalAyahs, 0);
+    } else {
+      engine.playAyah(surahNumber, localAyah);
+    }
+  }, [continuous, dhikrList]);
 
   const handlePlayFromVisible = useCallback(() => {
     if (firstVisibleAyah) {
@@ -134,7 +161,7 @@ export default function ReaderPage() {
         color: currentMode.text,
       }}
     >
-      <AyahAudioBar visible={audioBarVisible} onPlayFromVisible={handlePlayFromVisible} />
+      <AyahAudioBar visible={audioBarVisible} onPlayFromVisible={handlePlayFromVisible} continuous={continuous} onContinuousChange={setContinuous} />
 
       <header
         className="sticky top-0 z-40 backdrop-blur-md border-b border-current/10 py-4 px-6"
