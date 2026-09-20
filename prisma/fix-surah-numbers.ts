@@ -19,11 +19,11 @@ async function main() {
   const dhikrs = await prisma.dhikr.findMany();
   let updated = 0;
   for (const d of dhikrs) {
-    const match = d.title.match(/سورة\s+(\S+)/);
+    const match = d.title.match(/سورة\s+(.+?)\s*\(/);
     if (match) {
-      const arName = match[1];
+      const arName = match[1].trim();
       const num = SURAH_MAP[arName];
-      if (num && num !== 1) {
+      if (num && num !== d.surahNumber) {
         await prisma.dhikr.update({ where: { id: d.id }, data: { surahNumber: num } });
         console.log(`Updated ${d.id}: ${arName} → ${num}`);
         updated++;

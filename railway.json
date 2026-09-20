@@ -5,7 +5,7 @@
     "buildCommand": "DATABASE_URL=file:./dev.db npm run build"
   },
   "deploy": {
-    "startCommand": "npx prisma db push --skip-generate && npx tsx prisma/seed-db.ts && npm start",
+    "startCommand": "npx prisma db push --skip-generate && npx tsx prisma/fix-surah-numbers.ts && npm start",
     "healthcheckPath": "/",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
