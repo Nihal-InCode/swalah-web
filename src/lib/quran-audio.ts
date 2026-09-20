@@ -96,6 +96,7 @@ class AyahAudioEngine {
   private lastAyah = 0;
   private lastSurah = 0;
   private lastLocal = 0;
+  private playbackRate = 1;
   private listeners: Set<AyahAudioCallbacks> = new Set();
 
   private ensureAudio() {
@@ -149,6 +150,7 @@ class AyahAudioEngine {
     this.lastAyah = globalNum;
     const audio = this.ensureAudio();
     audio.src = getAyahAudioUrl(globalNum);
+    audio.playbackRate = this.playbackRate;
     audio.load();
 
     this.setState("playing");
@@ -239,6 +241,18 @@ class AyahAudioEngine {
 
   isPlaying(): boolean {
     return this.state === "playing";
+  }
+
+  cycleSpeed(): number {
+    const speeds = [1, 1.5, 2, 3, 4];
+    const idx = speeds.indexOf(this.playbackRate);
+    this.playbackRate = speeds[(idx + 1) % speeds.length];
+    if (this.audio) this.audio.playbackRate = this.playbackRate;
+    return this.playbackRate;
+  }
+
+  getPlaybackRate(): number {
+    return this.playbackRate;
   }
 }
 
