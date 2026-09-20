@@ -9,6 +9,7 @@ export default function SettingsPage() {
   const { settings, updateSetting, currentMode } = useSettings();
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadComplete, setDownloadComplete] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
 
   const handleExportJson = async () => {
@@ -97,30 +98,21 @@ export default function SettingsPage() {
       }
 
       const res = await fetch('/api/audio-cache');
-      const { urls, count } = await res.json();
+      const { urls } = await res.json();
       const total = urls.length;
-      const BATCH_SIZE = 15;
-      let batchesSent = 0;
-      const totalBatches = Math.ceil(total / BATCH_SIZE);
 
-      // Send all batches at once — SW handles them in parallel
-      for (let i = 0; i < urls.length; i += BATCH_SIZE) {
-        const batch = urls.slice(i, i + BATCH_SIZE);
-        reg.active.postMessage({ type: 'CACHE_AUDIO', urls: batch });
-        batchesSent++;
-      }
+      reg.active.postMessage({ type: 'CACHE_AUDIO', urls });
 
-      // Track completion — SW sends AUDIO_CACHED per batch
-      let completedBatches = 0;
       const handler = (event: MessageEvent) => {
-        if (event.data?.type === 'AUDIO_CACHED') {
-          completedBatches++;
-          setDownloadProgress(Math.round((completedBatches / totalBatches) * 100));
-          if (completedBatches >= totalBatches) {
-            setIsDownloading(false);
-            setDownloadProgress(null);
-            navigator.serviceWorker.removeEventListener('message', handler);
-          }
+        if (event.data?.type === 'AUDIO_PROGRESS') {
+          setDownloadProgress(Math.round((event.data.done / event.data.total) * 100));
+        }
+        if (event.data?.type === 'AUDIO_DONE') {
+          setIsDownloading(false);
+          setDownloadProgress(null);
+          setDownloadComplete(true);
+          setTimeout(() => setDownloadComplete(false), 5000);
+          navigator.serviceWorker.removeEventListener('message', handler);
         }
       };
       navigator.serviceWorker.addEventListener('message', handler);
@@ -399,7 +391,7 @@ export default function SettingsPage() {
               disabled={isDownloading}
               className="w-full p-3 rounded-lg border border-current/20 hover:bg-black/5 transition disabled:opacity-50"
             >
-              {isDownloading ? `⏳ Downloading... ${downloadProgress}%` : '⬇️ Download All Ayahs'}
+              {isDownloading ? `Downloading... ${downloadProgress}%` : downloadComplete ? 'Download Complete' : 'Download All Ayahs'}
             </button>
             {isDownloading && (
               <div className="w-full bg-black/10 rounded-full h-2 overflow-hidden">
@@ -409,12 +401,17 @@ export default function SettingsPage() {
                 />
               </div>
             )}
+            {downloadComplete && !isDownloading && (
+              <div className="w-full p-3 rounded-lg bg-green-100 text-green-800 text-center text-sm font-medium border border-green-200">
+                Offline support is now enabled
+              </div>
+            )}
             <button
               onClick={handleClearAudioCache}
               disabled={isClearing}
               className="w-full p-3 rounded-lg border border-current/20 hover:bg-black/5 transition text-red-500 disabled:opacity-50"
             >
-              {isClearing ? '⏳ Clearing...' : '🗑️ Clear Audio Cache'}
+              {isClearing ? 'Clearing...' : 'Clear Audio Cache'}
             </button>
           </div>
         </section>

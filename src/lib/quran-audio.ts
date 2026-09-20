@@ -150,13 +150,15 @@ class AyahAudioEngine {
     this.lastAyah = globalNum;
     const audio = this.ensureAudio();
     audio.src = getAyahAudioUrl(globalNum);
-    audio.playbackRate = this.playbackRate;
     audio.load();
+    audio.playbackRate = this.playbackRate;
 
     this.setState("playing");
     this.listeners.forEach(cb => cb.onAyahChange?.(globalNum));
 
-    audio.play().catch(() => {
+    audio.play().then(() => {
+      audio.playbackRate = this.playbackRate;
+    }).catch(() => {
       this.setState("paused");
     });
   }
@@ -244,7 +246,7 @@ class AyahAudioEngine {
   }
 
   cycleSpeed(): number {
-    const speeds = [1, 1.5, 2, 3, 4];
+    const speeds = [1, 1.5, 2];
     const idx = speeds.indexOf(this.playbackRate);
     this.playbackRate = speeds[(idx + 1) % speeds.length];
     if (this.audio) this.audio.playbackRate = this.playbackRate;

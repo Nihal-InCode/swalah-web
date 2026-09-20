@@ -1,5 +1,5 @@
-const CACHE_NAME = 'yawmi-v4';
-const AUDIO_CACHE = 'yawmi-audio-v1';
+const CACHE_NAME = 'yawmi-v5';
+const AUDIO_CACHE = 'yawmi-audio-v2';
 const ASSETS = [
   '/',
   '/settings',
@@ -31,7 +31,6 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // CDN audio: cache-first
   if (url.hostname === 'cdn.islamic.network') {
     event.respondWith(
       caches.open(AUDIO_CACHE).then((cache) =>
@@ -49,10 +48,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API: network-only
   if (url.pathname.startsWith('/api/')) return;
 
-  // App shell: stale-while-revalidate
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetched = fetch(event.request).then((response) => {
@@ -68,31 +65,31 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Message handler for pre-caching ayah audio
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'CACHE_AUDIO') {
     const { urls } = event.data;
     if (!Array.isArray(urls)) return;
+    const client = event.source;
 
-    caches.open(AUDIO_CACHE).then((cache) => {
-      Promise.allSettled(
-        urls.map((url) =>
-          cache.match(url).then((cached) => {
-            if (cached) return Promise.resolve();
-            return fetch(url).then((response) => {
-              if (response.ok) {
-                return cache.put(url, response);
-              }
-            });
-          })
-        )
-      ).then(() => {
-        self.clients.matchAll().then((clients) => {
-          clients.forEach((client) => {
-            client.postMessage({ type: 'AUDIO_CACHED' });
-          });
-        });
-      });
+    caches.open(AUDIO_CACHE).then(async (cache) => {
+      let done = 0;
+      const total = urls.length;
+      for (const url of urls) {
+        try {
+          const cached = await cache.match(url);
+          if (!cached) {
+            const response = await fetch(url);
+            if (response.ok) {
+              await cache.put(url, response);
+            }
+          }
+        } catch (e) { /* skip failed */ }
+        done++;
+        if (done % 5 === 0 || done === total) {
+          client.postMessage({ type: 'AUDIO_PROGRESS', done, total });
+        }
+      }
+      client.postMessage({ type: 'AUDIO_DONE', total });
     });
   }
 
