@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 export async function POST(request: NextRequest) {
   const forwarded = request.headers.get('x-forwarded-for');
   const ip = forwarded?.split(',')[0]?.trim() || 'unknown';
+  const ua = request.headers.get('user-agent') || '';
   const now = new Date();
   const today = now.toISOString().split('T')[0];
 
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
         totalUsageSeconds: usageSeconds,
         todayUsageSeconds: usageSeconds,
         todayDate: today,
+        device: '',
       },
     });
   }

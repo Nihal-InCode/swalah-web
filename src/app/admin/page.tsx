@@ -17,7 +17,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [visitorStats, setVisitorStats] = useState<{ uniqueUsers: number; onlineUsers: number; totalUsageSeconds: number; online: { ip: string; lastSeen: string; visits: number; todayUsageSeconds: number; totalUsageSeconds: number }[]; allVisitors: { ip: string; lastVisit: string; lastSeen: string; visits: number; todayUsageSeconds: number; totalUsageSeconds: number; todayDate: string }[] }>({ uniqueUsers: 0, onlineUsers: 0, totalUsageSeconds: 0, online: [], allVisitors: [] });
+  const [visitorStats, setVisitorStats] = useState<{ uniqueUsers: number; onlineUsers: number; totalUsageSeconds: number; online: { ip: string; lastSeen: string; visits: number; todayUsageSeconds: number; totalUsageSeconds: number; device: string }[]; allVisitors: { ip: string; lastVisit: string; lastSeen: string; visits: number; todayUsageSeconds: number; totalUsageSeconds: number; todayDate: string; device: string }[] }>({ uniqueUsers: 0, onlineUsers: 0, totalUsageSeconds: 0, online: [], allVisitors: [] });
 
   // Add form
   const [newTitle, setNewTitle] = useState("");
@@ -318,6 +318,7 @@ export default function AdminPage() {
                   <thead>
                     <tr className="text-left text-gray-500 border-b border-gray-700">
                       <th className="pb-2 font-medium">IP Address</th>
+                      <th className="pb-2 font-medium">Device</th>
                       <th className="pb-2 font-medium">Since</th>
                       <th className="pb-2 font-medium">Session</th>
                       <th className="pb-2 font-medium">Today</th>
@@ -332,6 +333,7 @@ export default function AdminPage() {
                       return (
                         <tr key={v.ip} className="text-gray-300">
                           <td className="py-2 font-mono text-xs">{v.ip}</td>
+                          <td className="py-2 text-xs">{v.device || 'Unknown'}</td>
                           <td className="py-2 text-xs">{since.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
                           <td className="py-2">
                             <span className="bg-emerald-900 text-emerald-300 text-xs px-2 py-0.5 rounded-full">{durText}</span>

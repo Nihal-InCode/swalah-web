@@ -15,6 +15,7 @@ export default function ReaderPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [playingAyah, setPlayingAyah] = useState(0);
   const [continuous, setContinuous] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const loadDhikr = useCallback(async () => {
     try {
@@ -44,6 +45,7 @@ export default function ReaderPage() {
   useEffect(() => {
     const handleScroll = () => {
       localStorage.setItem('readingPosition', String(window.scrollY));
+      setShowScrollTop(window.scrollY > 400);
     };
 
     let timeout: NodeJS.Timeout;
@@ -212,6 +214,13 @@ export default function ReaderPage() {
         speed={settings.autoScrollSpeed}
         onSpeedChange={(speed) => updateSetting('autoScrollSpeed', speed)}
       />
+
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className={`fixed bottom-20 right-4 z-[70] w-11 h-11 rounded-full bg-gray-800/90 backdrop-blur border border-white/10 text-white shadow-lg flex items-center justify-center transition-all duration-300 ${showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+      >
+        ↑
+      </button>
     </div>
   );
 }
