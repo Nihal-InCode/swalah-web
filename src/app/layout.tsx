@@ -48,7 +48,23 @@ export default function RootLayout({
         </SettingsProvider>
         <Script id="sw-register" strategy="afterInteractive">{`
           if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js');
+            navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
+              function checkUpdate() {
+                reg.update().catch(() => {});
+              }
+              checkUpdate();
+              setInterval(checkUpdate, 60 * 60 * 1000);
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'activated') {
+                      window.location.reload();
+                    }
+                  });
+                }
+              });
+            });
           }
         `}</Script>
       </body>
