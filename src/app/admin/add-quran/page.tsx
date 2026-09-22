@@ -184,6 +184,7 @@ export default function AddQuranPage() {
           title: title || `${selectedSurahInfo?.englishName ?? "Quran"} ${fromAyah}-${toAyah}`,
           arabic,
           startAyah: fromAyah,
+          surahNumber: selectedSurah,
         }),
       });
       if (!res.ok) {
