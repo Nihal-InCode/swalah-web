@@ -40,10 +40,13 @@ model Settings {
 }
 
 model Visitor {
-  ip        String   @id
-  lastVisit DateTime @default(now()) @map("last_visit")
-  lastSeen  DateTime @default(now()) @map("last_seen")
-  visits    Int      @default(1)
+  ip                String   @id
+  lastVisit         DateTime @default(now()) @map("last_visit")
+  lastSeen          DateTime @default(now()) @map("last_seen")
+  visits            Int      @default(1)
+  totalUsageSeconds Int      @default(0) @map("total_usage_seconds")
+  todayUsageSeconds Int      @default(0) @map("today_usage_seconds")
+  todayDate         String   @default("") @map("today_date")
 
   @@map("visitor")
 }

@@ -17,7 +17,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [visitorStats, setVisitorStats] = useState<{ uniqueUsers: number; onlineUsers: number; online: { ip: string; lastSeen: string; visits: number }[]; allVisitors: { ip: string; lastVisit: string; lastSeen: string; visits: number }[] }>({ uniqueUsers: 0, onlineUsers: 0, online: [], allVisitors: [] });
+  const [visitorStats, setVisitorStats] = useState<{ uniqueUsers: number; onlineUsers: number; totalUsageSeconds: number; online: { ip: string; lastSeen: string; visits: number; todayUsageSeconds: number; totalUsageSeconds: number }[]; allVisitors: { ip: string; lastVisit: string; lastSeen: string; visits: number; todayUsageSeconds: number; totalUsageSeconds: number; todayDate: string }[] }>({ uniqueUsers: 0, onlineUsers: 0, totalUsageSeconds: 0, online: [], allVisitors: [] });
 
   // Add form
   const [newTitle, setNewTitle] = useState("");
@@ -30,6 +30,14 @@ export default function AdminPage() {
   const [editTitle, setEditTitle] = useState("");
   const [editArabic, setEditArabic] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const formatDuration = (seconds: number): string => {
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  };
 
   const fetchDhikr = useCallback(async (q?: string) => {
     setLoading(true);
@@ -278,14 +286,27 @@ export default function AdminPage() {
         {/* Visitor Stats */}
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
           <h2 className="text-lg font-semibold text-white mb-4">User Statistics</h2>
-          <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-gray-900 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-emerald-400">{visitorStats.uniqueUsers}</div>
-              <div className="text-xs text-gray-500 mt-1">Total Users Visited</div>
+              <div className="text-xs text-gray-500 mt-1">Total Users</div>
             </div>
             <div className="bg-gray-900 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-green-400">{visitorStats.onlineUsers}</div>
               <div className="text-xs text-gray-500 mt-1">Currently Online</div>
+            </div>
+            <div className="bg-gray-900 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-blue-400">{formatDuration(visitorStats.totalUsageSeconds)}</div>
+              <div className="text-xs text-gray-500 mt-1">Total Usage Time</div>
+            </div>
+            <div className="bg-gray-900 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-purple-400">
+                {formatDuration(visitorStats.allVisitors.reduce((sum, v) => {
+                  const today = new Date().toISOString().split('T')[0];
+                  return sum + (v.todayDate === today ? v.todayUsageSeconds : 0);
+                }, 0))}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">Today&apos;s Usage</div>
             </div>
           </div>
 
@@ -297,8 +318,10 @@ export default function AdminPage() {
                   <thead>
                     <tr className="text-left text-gray-500 border-b border-gray-700">
                       <th className="pb-2 font-medium">IP Address</th>
-                      <th className="pb-2 font-medium">Using Since</th>
-                      <th className="pb-2 font-medium">Duration</th>
+                      <th className="pb-2 font-medium">Since</th>
+                      <th className="pb-2 font-medium">Session</th>
+                      <th className="pb-2 font-medium">Today</th>
+                      <th className="pb-2 font-medium">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-700/50">
@@ -312,6 +335,12 @@ export default function AdminPage() {
                           <td className="py-2 text-xs">{since.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
                           <td className="py-2">
                             <span className="bg-emerald-900 text-emerald-300 text-xs px-2 py-0.5 rounded-full">{durText}</span>
+                          </td>
+                          <td className="py-2">
+                            <span className="bg-blue-900 text-blue-300 text-xs px-2 py-0.5 rounded-full">{formatDuration(v.todayUsageSeconds)}</span>
+                          </td>
+                          <td className="py-2">
+                            <span className="bg-purple-900 text-purple-300 text-xs px-2 py-0.5 rounded-full">{formatDuration(v.totalUsageSeconds)}</span>
                           </td>
                         </tr>
                       );
