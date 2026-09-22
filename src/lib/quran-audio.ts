@@ -128,6 +128,7 @@ class AyahAudioEngine {
 
   playAyah(surahNumber: number, localAyah: number) {
     const globalNum = getGlobalAyahNumber(surahNumber, localAyah);
+    console.log(`[Audio] playAyah: surah=${surahNumber} local=${localAyah} → global=${globalNum} (${getAyahAudioUrl(globalNum)})`);
     this.lastSurah = surahNumber;
     this.lastLocal = localAyah;
     this.queue = [globalNum];

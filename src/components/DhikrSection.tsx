@@ -69,8 +69,9 @@ export default function DhikrSection({
 
   const handlePlayAyah = useCallback((ayahIndex: number) => {
     setTapMenu(null);
+    console.log(`[DhikrSection] tap: surah=${dhikr.surahNumber} localAyah=${ayahIndex} dhikr="${dhikr.title}"`);
     onAyahTap?.(dhikr.surahNumber, ayahIndex);
-  }, [dhikr.surahNumber, onAyahTap]);
+  }, [dhikr.surahNumber, dhikr.title, onAyahTap]);
 
   return (
     <div ref={containerRef} className="py-6 px-4 md:px-8 border-b border-current/10">

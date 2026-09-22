@@ -68,8 +68,9 @@ export function colorizeText(
   }
 
   // Always split by ayah markers (needed for ayahIndex assignment)
+  // Use optional trailing space to catch the last marker in text (no trailing space)
   {
-    const pattern = / ۝([٠-٩]+) /g;
+    const pattern = /\u06DD([\u0660-\u0669]+)/g;
     let match;
     while ((match = pattern.exec(normalizedText)) !== null) {
       allMatches.push({ start: match.index, end: match.index + match[0].length, group: match[0], type: 'ayah' });
