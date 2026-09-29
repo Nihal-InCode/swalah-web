@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { colorizeText, TextSegment } from '@/lib/text-colorizer';
 import { DhikrData } from '@/lib/constants';
-import { getAudioEngine, getGlobalAyahNumber } from '@/lib/quran-audio';
+import { getAudioEngine, getGlobalAyahNumber, getSurahNumberFromTitle } from '@/lib/quran-audio';
 
 interface DhikrSectionProps {
   dhikr: DhikrData;
@@ -37,6 +37,8 @@ export default function DhikrSection({
   const [tapMenu, setTapMenu] = useState<{ ayahIndex: number; x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const effectiveSurahNumber = getSurahNumberFromTitle(dhikr.title, dhikr.surahNumber);
+
   const extractBismillah = (title: string): string | null => {
     const match = title.match(/(بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ)/);
     return match ? match[1] : null;
@@ -69,9 +71,9 @@ export default function DhikrSection({
 
   const handlePlayAyah = useCallback((ayahIndex: number) => {
     setTapMenu(null);
-    console.log(`[DhikrSection] tap: surah=${dhikr.surahNumber} localAyah=${ayahIndex} dhikr="${dhikr.title}"`);
-    onAyahTap?.(dhikr.surahNumber, ayahIndex);
-  }, [dhikr.surahNumber, dhikr.title, onAyahTap]);
+    console.log(`[DhikrSection] tap: title="${dhikr.title}" surah=${effectiveSurahNumber} localAyah=${ayahIndex}`);
+    onAyahTap?.(effectiveSurahNumber, ayahIndex);
+  }, [dhikr.title, effectiveSurahNumber, onAyahTap]);
 
   return (
     <div ref={containerRef} className="py-6 px-4 md:px-8 border-b border-current/10">
@@ -144,11 +146,11 @@ export default function DhikrSection({
               onClick={segment.ayahIndex ? (e) => handleTextClick(e, segment.ayahIndex!) : undefined}
               className={onAyahTap && segment.ayahIndex ? 'cursor-pointer' : ''}
               data-ayah={segment.ayahIndex || undefined}
-              data-global-ayah={segment.ayahIndex ? getGlobalAyahNumber(dhikr.surahNumber, segment.ayahIndex) : undefined}
+              data-global-ayah={segment.ayahIndex ? getGlobalAyahNumber(effectiveSurahNumber, segment.ayahIndex) : undefined}
               style={{
                 color: segment.color,
                 fontWeight: segment.isBold ? 700 : undefined,
-                backgroundColor: playingAyah && segment.ayahIndex && playingAyah === getGlobalAyahNumber(dhikr.surahNumber, segment.ayahIndex)
+                backgroundColor: playingAyah && segment.ayahIndex && playingAyah === getGlobalAyahNumber(effectiveSurahNumber, segment.ayahIndex)
                   ? 'rgba(16, 185, 129, 0.15)'
                   : undefined,
                 borderRadius: '4px',

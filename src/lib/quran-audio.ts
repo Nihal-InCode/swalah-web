@@ -91,6 +91,59 @@ export const SURAH_NAMES_AR: Record<number, string> = {
   111: "المسد", 112: "الإخلاص", 113: "الفلق", 114: "الناس",
 };
 
+export const SURAH_NAME_TO_NUMBER: Record<string, number> = (() => {
+  const map: Record<string, number> = {};
+  for (const [numStr, name] of Object.entries(SURAH_NAMES_AR)) {
+    const num = parseInt(numStr, 10);
+    map[name] = num;
+    const clean = name.replace(/[\u064B-\u0652]/g, '').trim();
+    map[clean] = num;
+  }
+  const extras: Record<string, number> = {
+    'fatiha': 1, 'fatihah': 1, 'baqara': 2, 'baqarah': 2, 'imran': 3, 'nisa': 4, 'nisaa': 4,
+    'maidah': 5, 'anam': 6, 'araf': 7, 'anfal': 8, 'tawba': 9, 'tawbah': 9, 'yunus': 10,
+    'hud': 11, 'yusuf': 12, 'rad': 13, 'ibrahim': 14, 'hijr': 15, 'nahl': 16, 'isra': 17,
+    'kahf': 18, 'maryam': 19, 'taha': 20, 'anbiya': 21, 'anbiyaa': 21, 'hajj': 22,
+    'muminoon': 23, 'muminun': 23, 'noor': 24, 'nur': 24, 'furqan': 25, 'furqaan': 25,
+    'shuara': 26, 'shuaraa': 26, 'naml': 27, 'qasas': 28, 'ankabut': 29, 'room': 30, 'rum': 30,
+    'luqman': 31, 'sajdah': 32, 'ahzab': 33, 'saba': 34, 'fatir': 35,
+    'yaseen': 36, 'yasin': 36, 'ya-sin': 36, 'ya-seen': 36, 'يس': 36,
+    'saaffaat': 37, 'saffat': 37, 'sad': 38, 'zumar': 39, 'ghafir': 40, 'fussilat': 41,
+    'shura': 42, 'zukhruf': 43, 'dukhan': 44, 'jathiyah': 45, 'ahqaf': 46, 'muhammad': 47,
+    'fath': 48, 'hujurat': 49, 'qaf': 50, 'dhariyat': 51, 'tur': 52, 'najm': 53, 'qamar': 55,
+    'rahman': 55, 'waqiah': 56, 'hadid': 57, 'mujadilah': 58, 'hashr': 59, 'mumtahanah': 60,
+    'saff': 61, 'jumuah': 62, 'munafiqun': 63, 'taghabun': 64, 'talaq': 65, 'tahrim': 66,
+    'mulk': 67, 'qalam': 68, 'haqqah': 69, 'maarij': 70, 'nuh': 71, 'jinn': 72, 'muzzammil': 73,
+    'muddaththir': 74, 'qiyamah': 75, 'insan': 76, 'mursalat': 77, 'naba': 78, 'naziat': 79,
+    'abasa': 80, 'takwir': 81, 'infitar': 82, 'mutaffifin': 83, 'inshiqaq': 84, 'buruj': 85,
+    'tariq': 86, 'ala': 87, 'ghashiyah': 88, 'fajr': 89, 'balad': 90, 'shams': 91, 'layl': 92,
+    'duha': 93, 'sharh': 94, 'tin': 95, 'alaq': 96, 'qadr': 97, 'bayyinah': 98, 'zalzala': 99, 'zalzalah': 99,
+    'adiyat': 100, 'qariah': 101, 'takathur': 102, 'asr': 103, 'humazah': 104, 'fil': 105,
+    'quraysh': 106, 'maun': 107, 'kawthar': 108, 'kaafiroon': 109, 'kafirun': 109, 'nasr': 110,
+    'masad': 111, 'ikhlaas': 112, 'ikhlas': 112, 'falaq': 113, 'naas': 114, 'nas': 114,
+  };
+  return { ...map, ...extras };
+})();
+
+export function getSurahNumberFromTitle(title: string, defaultSurahNumber?: number): number {
+  const fallback = defaultSurahNumber || 1;
+  if (!title) return fallback;
+  const arMatch = title.match(/سورة\s+(.+?)(?:\s*[\(\d]|$)/);
+  if (arMatch) {
+    const name = arMatch[1].trim();
+    if (SURAH_NAME_TO_NUMBER[name]) return SURAH_NAME_TO_NUMBER[name];
+    const clean = name.replace(/[\u064B-\u0652]/g, '').trim();
+    if (SURAH_NAME_TO_NUMBER[clean]) return SURAH_NAME_TO_NUMBER[clean];
+  }
+  const cleanTitle = title.toLowerCase();
+  for (const [key, num] of Object.entries(SURAH_NAME_TO_NUMBER)) {
+    if (key.length >= 2 && cleanTitle.includes(key.toLowerCase())) {
+      return num;
+    }
+  }
+  return fallback;
+}
+
 // Audio engine singleton
 type PlaybackState = "idle" | "playing" | "paused";
 

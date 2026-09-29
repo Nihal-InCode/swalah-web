@@ -7,7 +7,7 @@ import AutoScroll from '@/components/AutoScroll';
 import AdminGate from '@/components/AdminGate';
 import AyahAudioBar from '@/components/AyahAudioBar';
 import { DhikrData, APP_NAME } from '@/lib/constants';
-import { getAudioEngine, getGlobalAyahNumber, extractAyahsFromText } from '@/lib/quran-audio';
+import { getAudioEngine, getGlobalAyahNumber, extractAyahsFromText, getSurahNumberFromTitle } from '@/lib/quran-audio';
 
 export default function ReaderPage() {
   const { settings, loading, updateSetting, currentMode } = useSettings();
@@ -94,9 +94,10 @@ export default function ReaderPage() {
         const remaining: number[] = [];
         let foundCurrent = false;
         for (const dhikr of dhikrList) {
+          const surahNum = getSurahNumberFromTitle(dhikr.title, dhikr.surahNumber);
           const ayahs = extractAyahsFromText(dhikr.arabic, dhikr.startAyah);
           for (const a of ayahs) {
-            const g = getGlobalAyahNumber(dhikr.surahNumber, a);
+            const g = getGlobalAyahNumber(surahNum, a);
             if (g === currentGlobal) { foundCurrent = true; continue; }
             if (foundCurrent) remaining.push(g);
           }
@@ -115,18 +116,19 @@ export default function ReaderPage() {
     const allGlobalAyahs: number[] = [];
     let foundStart = false;
     for (const dhikr of dhikrList) {
+      const surahNum = getSurahNumberFromTitle(dhikr.title, dhikr.surahNumber);
       const ayahs = extractAyahsFromText(dhikr.arabic, dhikr.startAyah);
       if (!foundStart) {
-        if (dhikr.surahNumber === surahNumber) {
+        if (surahNum === surahNumber) {
           const from = ayahs.indexOf(localAyah);
           for (let i = from >= 0 ? from : 0; i < ayahs.length; i++) {
-            allGlobalAyahs.push(getGlobalAyahNumber(dhikr.surahNumber, ayahs[i]));
+            allGlobalAyahs.push(getGlobalAyahNumber(surahNum, ayahs[i]));
           }
           foundStart = true;
         }
       } else {
         for (const a of ayahs) {
-          allGlobalAyahs.push(getGlobalAyahNumber(dhikr.surahNumber, a));
+          allGlobalAyahs.push(getGlobalAyahNumber(surahNum, a));
         }
       }
     }

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { NextRequest } from 'next/server';
+import { getSurahNumberFromTitle } from '@/lib/quran-audio';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
 
   const maxOrder = await prisma.dhikr.aggregate({ _max: { sortOrder: true } });
   const sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
+  const surahNum = getSurahNumberFromTitle(body.title, body.surahNumber);
 
   const dhikr = await prisma.dhikr.create({
     data: {
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest) {
       arabic: body.arabic,
       sortOrder: body.sortOrder ?? sortOrder,
       startAyah: body.startAyah ?? 1,
-      surahNumber: body.surahNumber ?? 1,
+      surahNumber: surahNum,
     },
   });
 

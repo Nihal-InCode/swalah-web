@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { NextRequest } from 'next/server';
+import { getSurahNumberFromTitle } from '@/lib/quran-audio';
 
 export async function GET(
   request: NextRequest,
@@ -25,15 +26,19 @@ export async function PUT(
   const { id } = await context.params;
   const body = await request.json();
 
+  const updateData: Record<string, unknown> = {
+    title: body.title,
+    arabic: body.arabic,
+    sortOrder: body.sortOrder,
+    startAyah: body.startAyah,
+  };
+  if (body.title || body.surahNumber !== undefined) {
+    updateData.surahNumber = getSurahNumberFromTitle(body.title, body.surahNumber);
+  }
+
   const dhikr = await prisma.dhikr.update({
     where: { id: parseInt(id) },
-    data: {
-      title: body.title,
-      arabic: body.arabic,
-      sortOrder: body.sortOrder,
-      startAyah: body.startAyah,
-      surahNumber: body.surahNumber,
-    },
+    data: updateData,
   });
 
   return Response.json(dhikr);
