@@ -4,23 +4,27 @@ import { NextRequest } from 'next/server';
 export async function POST(request: NextRequest) {
   const forwarded = request.headers.get('x-forwarded-for');
   const ip = forwarded?.split(',')[0]?.trim() || 'unknown';
-  const ua = request.headers.get('user-agent') || '';
   const now = new Date();
   const today = now.toISOString().split('T')[0];
 
+  let visitorId = '';
   let usageSeconds = 0;
   try {
     const body = await request.json();
+    visitorId = body.visitorId || '';
     usageSeconds = body.usageSeconds || 0;
   } catch {}
 
-  const existing = await prisma.visitor.findUnique({ where: { ip } });
+  const id = visitorId || ip;
+
+  const existing = await prisma.visitor.findUnique({ where: { id } });
 
   if (existing) {
     const resetToday = existing.todayDate !== today;
     await prisma.visitor.update({
-      where: { ip },
+      where: { id },
       data: {
+        ip,
         lastSeen: now,
         totalUsageSeconds: existing.totalUsageSeconds + usageSeconds,
         todayUsageSeconds: resetToday ? usageSeconds : existing.todayUsageSeconds + usageSeconds,
@@ -30,6 +34,7 @@ export async function POST(request: NextRequest) {
   } else {
     await prisma.visitor.create({
       data: {
+        id,
         ip,
         lastSeen: now,
         lastVisit: now,

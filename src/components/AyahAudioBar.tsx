@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { getAudioEngine, SURAH_NAMES_AR } from '@/lib/quran-audio';
+import { getAudioEngine, getAyahLabel } from '@/lib/quran-audio';
 
 interface AyahAudioBarProps {
   continuous: boolean;
@@ -40,31 +40,7 @@ export default function AyahAudioBar({ continuous, onContinuousChange }: AyahAud
     setSpeed(s);
   }, []);
 
-  const getAyahLabel = (globalNum: number): string => {
-    const CUMULATIVE = [0];
-    const COUNTS = [0, 7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128,
-      111, 110, 98, 135, 112, 78, 118, 64, 77, 227, 93, 88, 69, 37, 34, 30, 73,
-      54, 45, 83, 182, 88, 75, 85, 54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60,
-      49, 62, 55, 78, 96, 29, 22, 24, 13, 14, 11, 11, 18, 12, 12, 30, 52,
-      52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25, 22,
-      17, 19, 26, 30, 20, 15, 21, 11, 8, 8, 19, 5, 8, 8, 11, 11,
-      8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5, 6, 3, 5, 4,
-      5, 4, 8, 18, 5, 4, 3, 6, 3, 5, 5, 3, 4, 3, 6, 3,
-      5, 3, 4, 3, 6, 3, 5, 4, 5, 3, 6, 3, 5, 4, 5, 3,
-      6, 3, 5, 4, 5, 3, 6, 3, 5, 4, 5, 3, 6, 3, 5, 4,
-      5, 6];
-    for (let i = 1; i <= 114; i++) {
-      CUMULATIVE.push(CUMULATIVE[i - 1] + COUNTS[i]);
-    }
-    for (let i = 1; i <= 114; i++) {
-      if (globalNum <= CUMULATIVE[i]) {
-        const local = globalNum - CUMULATIVE[i - 1];
-        const name = SURAH_NAMES_AR[i] || `Surah ${i}`;
-        return `${name} - ${local}`;
-      }
-    }
-    return `Ayah ${globalNum}`;
-  };
+
 
   const show = state !== 'idle' || (state === 'idle' && currentAyah > 0 && !dismissed);
 

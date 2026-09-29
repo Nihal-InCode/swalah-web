@@ -11,13 +11,34 @@ interface DhikrEntry {
   startAyah?: number;
 }
 
+interface VisitorItem {
+  id: string;
+  ip: string;
+  lastVisit: string;
+  lastSeen: string;
+  visits: number;
+  todayUsageSeconds: number;
+  totalUsageSeconds: number;
+  todayDate?: string;
+  device: string;
+  isOnline?: boolean;
+}
+
 export default function AdminPage() {
   const [dhikrList, setDhikrList] = useState<DhikrEntry[]>([]);
   const [filtered, setFiltered] = useState<DhikrEntry[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [visitorStats, setVisitorStats] = useState<{ uniqueUsers: number; onlineUsers: number; totalUsageSeconds: number; online: { ip: string; lastSeen: string; visits: number; todayUsageSeconds: number; totalUsageSeconds: number; device: string }[]; allVisitors: { ip: string; lastVisit: string; lastSeen: string; visits: number; todayUsageSeconds: number; totalUsageSeconds: number; todayDate: string; device: string }[] }>({ uniqueUsers: 0, onlineUsers: 0, totalUsageSeconds: 0, online: [], allVisitors: [] });
+  const [userTab, setUserTab] = useState<"all" | "online">("all");
+  const [visitorSearch, setVisitorSearch] = useState("");
+  const [visitorStats, setVisitorStats] = useState<{
+    uniqueUsers: number;
+    onlineUsers: number;
+    totalUsageSeconds: number;
+    online: VisitorItem[];
+    allVisitors: VisitorItem[];
+  }>({ uniqueUsers: 0, onlineUsers: 0, totalUsageSeconds: 0, online: [], allVisitors: [] });
 
   // Add form
   const [newTitle, setNewTitle] = useState("");
@@ -37,6 +58,17 @@ export default function AdminPage() {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  };
+
+  const formatRelativeTime = (isoString: string): string => {
+    if (!isoString) return "Never";
+    const date = new Date(isoString);
+    const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diffSec < 60) return "just now";
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+    const days = Math.floor(diffSec / 86400);
+    return days === 1 ? "1d ago" : `${days}d ago`;
   };
 
   const fetchDhikr = useCallback(async (q?: string) => {
@@ -283,66 +315,178 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-        {/* Visitor Stats */}
+        {/* User Analytics & Statistics */}
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">User Statistics</h2>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-white">User Analytics & Usage Tracking</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Tracks returning users by device, total usage time, and active sessions.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+              <span className="text-xs text-emerald-400 font-medium">
+                {visitorStats.onlineUsers} {visitorStats.onlineUsers === 1 ? 'user' : 'users'} active now
+              </span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gray-900 rounded-lg p-4 text-center">
+            <div className="bg-gray-900/80 border border-gray-700/50 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-emerald-400">{visitorStats.uniqueUsers}</div>
-              <div className="text-xs text-gray-500 mt-1">Total Users</div>
+              <div className="text-xs text-gray-400 mt-1">Total Unique Users</div>
             </div>
-            <div className="bg-gray-900 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-green-400">{visitorStats.onlineUsers}</div>
-              <div className="text-xs text-gray-500 mt-1">Currently Online</div>
+            <div className="bg-gray-900/80 border border-gray-700/50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-green-400 flex items-center justify-center gap-1.5">
+                {visitorStats.onlineUsers}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">Currently Online</div>
             </div>
-            <div className="bg-gray-900 rounded-lg p-4 text-center">
+            <div className="bg-gray-900/80 border border-gray-700/50 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-blue-400">{formatDuration(visitorStats.totalUsageSeconds)}</div>
-              <div className="text-xs text-gray-500 mt-1">Total Usage Time</div>
+              <div className="text-xs text-gray-400 mt-1">Total App Usage Time</div>
             </div>
-            <div className="bg-gray-900 rounded-lg p-4 text-center">
+            <div className="bg-gray-900/80 border border-gray-700/50 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-purple-400">
                 {formatDuration(visitorStats.allVisitors.reduce((sum, v) => {
                   const today = new Date().toISOString().split('T')[0];
                   return sum + (v.todayDate === today ? v.todayUsageSeconds : 0);
                 }, 0))}
               </div>
-              <div className="text-xs text-gray-500 mt-1">Today&apos;s Usage</div>
+              <div className="text-xs text-gray-400 mt-1">Today&apos;s Usage</div>
             </div>
           </div>
 
-          {visitorStats.online.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-400 mb-3">Currently Online ({visitorStats.onlineUsers})</h3>
+          {/* User Directory Tabs & Search */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-700 pb-3 mb-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setUserTab("all")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  userTab === "all"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-650"
+                }`}
+              >
+                All Users ({visitorStats.allVisitors.length})
+              </button>
+              <button
+                onClick={() => setUserTab("online")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                  userTab === "online"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-gray-700 text-gray-300 hover:bg-gray-650"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                Online Now ({visitorStats.onlineUsers})
+              </button>
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <input
+                type="text"
+                placeholder="Search user ID, device, IP..."
+                value={visitorSearch}
+                onChange={(e) => setVisitorSearch(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {visitorSearch && (
+                <button
+                  onClick={() => setVisitorSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Users Table */}
+          {(() => {
+            const sourceList = userTab === "online" ? visitorStats.online : visitorStats.allVisitors;
+            const filteredUsers = sourceList.filter((u) => {
+              if (!visitorSearch.trim()) return true;
+              const q = visitorSearch.toLowerCase();
+              return (
+                u.id.toLowerCase().includes(q) ||
+                u.ip.toLowerCase().includes(q) ||
+                u.device.toLowerCase().includes(q)
+              );
+            });
+
+            if (filteredUsers.length === 0) {
+              return (
+                <p className="text-gray-500 text-xs text-center py-6">
+                  {visitorSearch ? "No users match your search." : userTab === "online" ? "No users currently online." : "No registered users recorded yet."}
+                </p>
+              );
+            }
+
+            return (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs">
                   <thead>
-                    <tr className="text-left text-gray-500 border-b border-gray-700">
+                    <tr className="text-left text-gray-400 border-b border-gray-700">
+                      <th className="pb-2 font-medium">User / Device</th>
                       <th className="pb-2 font-medium">IP Address</th>
-                      <th className="pb-2 font-medium">Device</th>
-                      <th className="pb-2 font-medium">Since</th>
-                      <th className="pb-2 font-medium">Session</th>
-                      <th className="pb-2 font-medium">Today</th>
-                      <th className="pb-2 font-medium">Total</th>
+                      <th className="pb-2 font-medium">Status</th>
+                      <th className="pb-2 font-medium">Visits</th>
+                      <th className="pb-2 font-medium">Today&apos;s Usage</th>
+                      <th className="pb-2 font-medium">Total Usage Time</th>
+                      <th className="pb-2 font-medium">Last Active</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-700/50">
-                    {visitorStats.online.map((v) => {
-                      const since = new Date(v.lastSeen);
-                      const mins = Math.floor((Date.now() - since.getTime()) / 60000);
-                      const durText = mins < 1 ? 'just now' : mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+                    {filteredUsers.map((v) => {
+                      const isOnline = v.isOnline ?? (visitorStats.online.some((o) => o.id === v.id));
                       return (
-                        <tr key={v.ip} className="text-gray-300">
-                          <td className="py-2 font-mono text-xs">{v.ip}</td>
-                          <td className="py-2 text-xs">{v.device || 'Unknown'}</td>
-                          <td className="py-2 text-xs">{since.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
-                          <td className="py-2">
-                            <span className="bg-emerald-900 text-emerald-300 text-xs px-2 py-0.5 rounded-full">{durText}</span>
+                        <tr key={v.id} className="text-gray-300 hover:bg-gray-750/50 transition-colors">
+                          <td className="py-2.5 font-medium">
+                            <div className="flex flex-col">
+                              <span className="text-white font-semibold">{v.device || 'Unknown Device'}</span>
+                              <span className="text-[10px] text-gray-500 font-mono">{v.id}</span>
+                            </div>
                           </td>
-                          <td className="py-2">
-                            <span className="bg-blue-900 text-blue-300 text-xs px-2 py-0.5 rounded-full">{formatDuration(v.todayUsageSeconds)}</span>
+                          <td className="py-2.5 font-mono text-gray-400">{v.ip}</td>
+                          <td className="py-2.5">
+                            {isOnline ? (
+                              <span className="inline-flex items-center gap-1.5 bg-emerald-950 text-emerald-300 border border-emerald-800/60 px-2 py-0.5 rounded-full text-[11px]">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                Online
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 bg-gray-900 text-gray-400 px-2 py-0.5 rounded-full text-[11px]">
+                                Offline ({formatRelativeTime(v.lastSeen)})
+                              </span>
+                            )}
                           </td>
-                          <td className="py-2">
-                            <span className="bg-purple-900 text-purple-300 text-xs px-2 py-0.5 rounded-full">{formatDuration(v.totalUsageSeconds)}</span>
+                          <td className="py-2.5">
+                            <span className="bg-gray-900 text-gray-300 px-2 py-0.5 rounded text-[11px] font-medium">
+                              {v.visits} {v.visits === 1 ? 'visit' : 'visits'}
+                            </span>
+                          </td>
+                          <td className="py-2.5">
+                            <span className="bg-blue-950 text-blue-300 border border-blue-800/40 px-2 py-0.5 rounded text-[11px]">
+                              {formatDuration(v.todayUsageSeconds)}
+                            </span>
+                          </td>
+                          <td className="py-2.5">
+                            <span className="bg-purple-950 text-purple-300 border border-purple-800/40 px-2 py-0.5 rounded text-[11px] font-semibold">
+                              {formatDuration(v.totalUsageSeconds)}
+                            </span>
+                          </td>
+                          <td className="py-2.5 text-gray-400 text-[11px]">
+                            {new Date(v.lastSeen).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
                           </td>
                         </tr>
                       );
@@ -350,12 +494,8 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-
-          {visitorStats.online.length === 0 && (
-            <p className="text-gray-500 text-sm text-center py-4">No users currently online</p>
-          )}
+            );
+          })()}
         </div>
 
         {/* Actions Bar */}
