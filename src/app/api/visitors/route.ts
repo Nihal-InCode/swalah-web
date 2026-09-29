@@ -30,17 +30,13 @@ export async function POST(request: NextRequest) {
   const now = new Date();
   const today = now.toISOString().split('T')[0];
 
-  let visitorId = '';
   let usageSeconds = 0;
   try {
     const body = await request.json();
-    visitorId = body.visitorId || '';
     usageSeconds = body.usageSeconds || 0;
   } catch {}
 
-  const id = visitorId || ip;
-
-  const existing = await prisma.visitor.findUnique({ where: { id } });
+  const existing = await prisma.visitor.findUnique({ where: { ip } });
 
   if (existing) {
     const resetToday = existing.todayDate !== today;
@@ -48,9 +44,8 @@ export async function POST(request: NextRequest) {
     const isNewVisit = minutesSinceLastSeen > 15;
 
     await prisma.visitor.update({
-      where: { id },
+      where: { ip },
       data: {
-        ip,
         lastSeen: now,
         lastVisit: isNewVisit ? now : existing.lastVisit,
         visits: isNewVisit ? existing.visits + 1 : existing.visits,
@@ -63,7 +58,6 @@ export async function POST(request: NextRequest) {
   } else {
     await prisma.visitor.create({
       data: {
-        id,
         ip,
         lastSeen: now,
         lastVisit: now,
@@ -93,7 +87,6 @@ export async function GET() {
   const totalUsageAll = allVisitors.reduce((sum, v) => sum + v.totalUsageSeconds, 0);
 
   const onlineFormatted = online.map(v => ({
-    id: v.id,
     ip: v.ip,
     lastSeen: v.lastSeen,
     lastVisit: v.lastVisit,
@@ -104,7 +97,6 @@ export async function GET() {
   }));
 
   const allVisitorsFormatted = allVisitors.map(v => ({
-    id: v.id,
     ip: v.ip,
     lastVisit: v.lastVisit,
     lastSeen: v.lastSeen,
