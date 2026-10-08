@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSettings } from '@/components/ThemeProvider';
-import { READING_MODES, AVAILABLE_FONTS, APP_NAME } from '@/lib/constants';
+import DhikrSection from '@/components/DhikrSection';
+import { READING_MODES, AVAILABLE_FONTS, APP_NAME, DhikrData } from '@/lib/constants';
 import { buildUpiUrl, canOpenUpiApp, openUpiApp, UPI_ID } from '@/lib/upi';
 import Link from 'next/link';
+
+const PREVIEW_HOLD_MS = 2000;
 
 export default function SettingsPage() {
   const { settings, updateSetting, currentMode } = useSettings();
@@ -15,6 +18,74 @@ export default function SettingsPage() {
   const [showSupport, setShowSupport] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewList, setPreviewList] = useState<DhikrData[]>([]);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draggingRef = useRef(false);
+  const previewFetchedRef = useRef(false);
+
+  const closePreview = () => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = null;
+    setPreviewing(false);
+  };
+
+  const scheduleHide = (ms = PREVIEW_HOLD_MS) => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setPreviewing(false), ms);
+  };
+
+  const showPreview = () => {
+    if (!previewFetchedRef.current) {
+      previewFetchedRef.current = true;
+      fetch('/api/dhikr')
+        .then((r) => r.json())
+        .then((d) => {
+          if (Array.isArray(d)) setPreviewList(d.slice(0, 2));
+        })
+        .catch(() => {
+          previewFetchedRef.current = false;
+        });
+    }
+    setPreviewing(true);
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  };
+
+  // Called on every setting change: show the live reader preview, and
+  // auto-return to the settings page shortly after the last change.
+  const previewTick = () => {
+    showPreview();
+    if (!draggingRef.current) scheduleHide();
+  };
+
+  // While a slider is held/dragged the preview stays up; releasing
+  // schedules the auto-return.
+  const sliderPreviewProps = {
+    onPointerDown: () => {
+      draggingRef.current = true;
+      showPreview();
+    },
+    onPointerUp: () => {
+      draggingRef.current = false;
+      scheduleHide();
+    },
+    onPointerCancel: () => {
+      draggingRef.current = false;
+      scheduleHide();
+    },
+    onKeyDown: () => showPreview(),
+    onKeyUp: () => scheduleHide(),
+    onBlur: () => scheduleHide(),
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, []);
 
   const handleSupportClick = async () => {
     if (canOpenUpiApp()) {
@@ -211,7 +282,10 @@ export default function SettingsPage() {
             {READING_MODES.map((mode) => (
               <button
                 key={mode.id}
-                onClick={() => updateSetting('readingMode', mode.id)}
+                onClick={() => {
+                  updateSetting('readingMode', mode.id);
+                  previewTick();
+                }}
                 className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1 ${
                   settings.readingMode === mode.id
                     ? 'border-green-600 scale-105'
@@ -238,7 +312,10 @@ export default function SettingsPage() {
             {AVAILABLE_FONTS.map((font) => (
               <button
                 key={font.name}
-                onClick={() => updateSetting('fontFamily', font.name)}
+                onClick={() => {
+                  updateSetting('fontFamily', font.name);
+                  previewTick();
+                }}
                 className={`p-3 rounded-lg border-2 transition-all ${
                   settings.fontFamily === font.name
                     ? 'border-green-600 bg-green-600/10'
@@ -262,9 +339,13 @@ export default function SettingsPage() {
             min={18}
             max={60}
             value={settings.fontSize}
-            onChange={(e) => updateSetting('fontSize', parseFloat(e.target.value))}
+            onChange={(e) => {
+              updateSetting('fontSize', parseFloat(e.target.value));
+              previewTick();
+            }}
             className="w-full accent-green-700"
             style={{ accentColor: currentMode.titleColor }}
+            {...sliderPreviewProps}
           />
           <div className="flex justify-between text-xs opacity-50">
             <span>18px</span>
@@ -283,9 +364,13 @@ export default function SettingsPage() {
             max={3.0}
             step={0.1}
             value={settings.lineHeight}
-            onChange={(e) => updateSetting('lineHeight', parseFloat(e.target.value))}
+            onChange={(e) => {
+              updateSetting('lineHeight', parseFloat(e.target.value));
+              previewTick();
+            }}
             className="w-full accent-green-700"
             style={{ accentColor: currentMode.titleColor }}
+            {...sliderPreviewProps}
           />
           <div className="flex justify-between text-xs opacity-50">
             <span>1.0</span>
@@ -306,7 +391,10 @@ export default function SettingsPage() {
             ].map((align) => (
               <button
                 key={align.value}
-                onClick={() => updateSetting('textAlign', align.value)}
+                onClick={() => {
+                  updateSetting('textAlign', align.value);
+                  previewTick();
+                }}
                 className={`flex-1 p-3 rounded-lg border-2 transition-all ${
                   settings.textAlign === align.value
                     ? 'border-green-600 bg-green-600/10'
@@ -331,7 +419,10 @@ export default function SettingsPage() {
               <input
                 type="checkbox"
                 checked={settings.colorAllah}
-                onChange={(e) => updateSetting('colorAllah', e.target.checked)}
+                onChange={(e) => {
+                  updateSetting('colorAllah', e.target.checked);
+                  previewTick();
+                }}
                 className="w-5 h-5 accent-green-700"
               />
             </label>
@@ -340,7 +431,10 @@ export default function SettingsPage() {
               <input
                 type="checkbox"
                 checked={settings.colorAyahMarkers}
-                onChange={(e) => updateSetting('colorAyahMarkers', e.target.checked)}
+                onChange={(e) => {
+                  updateSetting('colorAyahMarkers', e.target.checked);
+                  previewTick();
+                }}
                 className="w-5 h-5 accent-green-700"
               />
             </label>
@@ -505,6 +599,61 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+
+        {/* Live reader preview — fades in while a setting is being adjusted */}
+        <div
+          data-live-preview
+          className={`fixed inset-0 z-[80] overflow-y-auto transition-opacity duration-200 ${
+            previewing ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ backgroundColor: currentMode.background, color: currentMode.text }}
+          onClick={closePreview}
+        >
+          <header
+            className="sticky top-0 z-40 backdrop-blur-md border-b border-current/10 py-4 px-6"
+            style={{ backgroundColor: `${currentMode.background}E6` }}
+          >
+            <div className="max-w-4xl mx-auto flex items-center justify-between">
+              <h1 className="text-2xl font-bold" style={{ color: currentMode.titleColor }}>
+                {APP_NAME}
+              </h1>
+              <button
+                onClick={closePreview}
+                className="px-5 py-1.5 rounded-full text-sm font-semibold text-white bg-green-700 hover:bg-green-600 transition"
+              >
+                Done
+              </button>
+            </div>
+          </header>
+
+          <main className="max-w-4xl mx-auto pb-24" style={{ paddingTop: '4.5rem' }}>
+            {previewList.length === 0 ? (
+              <div className="text-center py-16 text-sm opacity-60">Loading preview…</div>
+            ) : (
+              previewList.map((dhikr) => (
+                <DhikrSection
+                  key={dhikr.id}
+                  dhikr={dhikr}
+                  fontFamily={settings.fontFamily}
+                  fontSize={settings.fontSize}
+                  lineHeight={settings.lineHeight}
+                  textAlign={settings.textAlign}
+                  colorAllah={settings.colorAllah}
+                  colorAyahMarkers={settings.colorAyahMarkers}
+                  titleColor={currentMode.titleColor}
+                  textColor={currentMode.text}
+                  showAudio={false}
+                />
+              ))
+            )}
+          </main>
+
+          <div className="fixed bottom-5 inset-x-0 flex justify-center pointer-events-none">
+            <div className="rounded-full bg-black/70 text-white text-xs px-4 py-2 backdrop-blur">
+              {settings.fontSize}px · line {settings.lineHeight.toFixed(1)} · tap anywhere to close
+            </div>
+          </div>
+        </div>
 
         {/* About */}
         <section className="text-center py-8 opacity-60">
