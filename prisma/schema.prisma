@@ -40,7 +40,9 @@ model Settings {
 }
 
 model Visitor {
-  ip                String   @id
+  id                String   @id @default(uuid())
+  visitorId         String   @unique @default("") @map("visitor_id")
+  ip                String   @default("")
   lastVisit         DateTime @default(now()) @map("last_visit")
   lastSeen          DateTime @default(now()) @map("last_seen")
   visits            Int      @default(1)

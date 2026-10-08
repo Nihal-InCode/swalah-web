@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { NextRequest } from 'next/server';
+import { sanitizeDevice } from '@/lib/device-names';
 
 function parseDevice(ua: string): string {
   if (!ua) return 'Unknown';
@@ -26,17 +27,32 @@ export async function POST(request: NextRequest) {
   const forwarded = request.headers.get('x-forwarded-for');
   const ip = forwarded?.split(',')[0]?.trim() || 'unknown';
   const ua = request.headers.get('user-agent') || '';
-  const device = parseDevice(ua);
   const now = new Date();
   const today = now.toISOString().split('T')[0];
 
   let usageSeconds = 0;
+  let visitorId = '';
+  let bodyDevice = '';
   try {
     const body = await request.json();
     usageSeconds = body.usageSeconds || 0;
+    visitorId = typeof body.visitorId === 'string' ? body.visitorId.trim() : '';
+    bodyDevice = sanitizeDevice(body.device);
   } catch {}
 
-  const existing = await prisma.visitor.findUnique({ where: { ip } });
+  // Prefer the client-resolved device model; fall back to UA parsing.
+  const device = bodyDevice || parseDevice(ua);
+
+  let existing = null;
+  if (visitorId) {
+    existing = await prisma.visitor.findUnique({ where: { visitorId } });
+  } else if (ip) {
+    // Legacy client without a visitorId: match the most recent row for this IP
+    existing = await prisma.visitor.findFirst({
+      where: { ip },
+      orderBy: { lastSeen: 'desc' },
+    });
+  }
 
   if (existing) {
     const resetToday = existing.todayDate !== today;
@@ -44,20 +60,24 @@ export async function POST(request: NextRequest) {
     const isNewVisit = minutesSinceLastSeen > 15;
 
     await prisma.visitor.update({
-      where: { ip },
+      where: { id: existing.id },
       data: {
+        visitorId: visitorId || existing.visitorId,
+        ip,
         lastSeen: now,
         lastVisit: isNewVisit ? now : existing.lastVisit,
         visits: isNewVisit ? existing.visits + 1 : existing.visits,
         totalUsageSeconds: existing.totalUsageSeconds + usageSeconds,
         todayUsageSeconds: resetToday ? usageSeconds : existing.todayUsageSeconds + usageSeconds,
         todayDate: today,
-        device: device || existing.device,
+        // Never downgrade a specific model name to a generic UA label
+        device: bodyDevice || existing.device || device,
       },
     });
   } else {
     await prisma.visitor.create({
       data: {
+        visitorId: visitorId || `legacy_${ip}_${now.getTime()}`,
         ip,
         lastSeen: now,
         lastVisit: now,
@@ -87,6 +107,8 @@ export async function GET() {
   const totalUsageAll = allVisitors.reduce((sum, v) => sum + v.totalUsageSeconds, 0);
 
   const onlineFormatted = online.map(v => ({
+    id: v.id,
+    visitorId: v.visitorId,
     ip: v.ip,
     lastSeen: v.lastSeen,
     lastVisit: v.lastVisit,
@@ -97,6 +119,8 @@ export async function GET() {
   }));
 
   const allVisitorsFormatted = allVisitors.map(v => ({
+    id: v.id,
+    visitorId: v.visitorId,
     ip: v.ip,
     lastVisit: v.lastVisit,
     lastSeen: v.lastSeen,

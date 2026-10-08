@@ -12,6 +12,8 @@ interface DhikrEntry {
 }
 
 interface VisitorItem {
+  id: string;
+  visitorId?: string;
   ip: string;
   lastVisit: string;
   lastSeen: string;
@@ -431,7 +433,7 @@ export default function AdminPage() {
                   <thead>
                     <tr className="text-left text-gray-400 border-b border-gray-700">
                       <th className="pb-2 font-medium">User / Device</th>
-                      <th className="pb-2 font-medium">IP Address</th>
+                      <th className="pb-2 font-medium">Last IP Address</th>
                       <th className="pb-2 font-medium">Status</th>
                       <th className="pb-2 font-medium">Visits</th>
                       <th className="pb-2 font-medium">Today&apos;s Usage</th>
@@ -441,9 +443,9 @@ export default function AdminPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-700/50">
                     {filteredUsers.map((v) => {
-                      const isOnline = v.isOnline ?? (visitorStats.online.some((o) => o.ip === v.ip));
+                      const isOnline = v.isOnline ?? (visitorStats.online.some((o) => o.id === v.id));
                       return (
-                        <tr key={v.ip} className="text-gray-300 hover:bg-gray-750/50 transition-colors">
+                        <tr key={v.id} className="text-gray-300 hover:bg-gray-750/50 transition-colors">
                           <td className="py-2.5 font-medium">
                             <div className="flex flex-col">
                               <span className="text-white font-semibold">{v.device || 'Unknown Device'}</span>
