@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSettings } from '@/components/ThemeProvider';
 import { READING_MODES, AVAILABLE_FONTS, APP_NAME } from '@/lib/constants';
 import { buildUpiUrl, canOpenUpiApp, openUpiApp, UPI_ID } from '@/lib/upi';
@@ -128,7 +128,6 @@ export default function SettingsPage() {
 
       const res = await fetch('/api/audio-cache');
       const { urls } = await res.json();
-      const total = urls.length;
 
       reg.active.postMessage({ type: 'CACHE_AUDIO', urls });
 
@@ -328,7 +327,7 @@ export default function SettingsPage() {
           </h2>
           <div className="space-y-3">
             <label className="flex items-center justify-between p-3 rounded-lg bg-black/5">
-              <span>Color "الله" in red</span>
+              <span>Color &quot;الله&quot; in red</span>
               <input
                 type="checkbox"
                 checked={settings.colorAllah}
@@ -446,18 +445,23 @@ export default function SettingsPage() {
         </section>
 
         {/* Support Project */}
-        <section>
-          <h2 className="text-lg font-bold mb-4" style={{ color: currentMode.titleColor }}>
-            Support Project
-          </h2>
-          <p className="text-sm opacity-70 mb-3">
+        <section className="relative overflow-hidden rounded-2xl border border-emerald-500/40 bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent p-5 shadow-lg shadow-emerald-600/10">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <h2 className="text-lg font-bold" style={{ color: currentMode.titleColor }}>
+              💚 Support Project
+            </h2>
+            <span className="shrink-0 rounded-full bg-emerald-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+              Support
+            </span>
+          </div>
+          <p className="text-sm opacity-70 mb-4">
             If {APP_NAME} helps you, consider supporting its development 🤍
           </p>
           <button
             onClick={handleSupportClick}
-            className="w-full p-3 rounded-lg border border-current/20 hover:bg-black/5 transition font-medium"
+            className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] px-4 py-3.5 text-white font-semibold shadow-lg shadow-emerald-600/30 hover:shadow-emerald-500/40 transition-all"
           >
-            💚 Support this project
+            Support this project →
           </button>
         </section>
 
@@ -473,7 +477,7 @@ export default function SettingsPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold" style={{ color: currentMode.titleColor }}>
-                Support {APP_NAME}
+                💚 Support {APP_NAME}
               </h3>
               <p className="text-sm opacity-70">
                 Scan this QR code with any UPI app (GPay, PhonePe, Paytm, BHIM), or copy the UPI ID.
@@ -488,7 +492,7 @@ export default function SettingsPage() {
               )}
               <button
                 onClick={handleCopyUpi}
-                className="w-full p-3 rounded-lg border border-current/20 hover:bg-black/5 transition font-mono text-sm"
+                className="w-full p-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition font-mono text-sm font-medium"
               >
                 {copied ? '✓ Copied!' : `Copy UPI ID: ${UPI_ID}`}
               </button>
