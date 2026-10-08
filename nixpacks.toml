@@ -1,2 +1,6 @@
 [phases.setup]
 nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci --include=dev"]
+onlyIncludeFiles = [".npmrc", "package.json", "package-lock.json", "prisma/schema.prisma"]
