@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { NextRequest } from 'next/server';
-import { sanitizeDevice } from '@/lib/device-names';
+import { sanitizeDevice, isMergeableDevice } from '@/lib/device-names';
 
 function parseDevice(ua: string): string {
   if (!ua) return '';
@@ -46,6 +46,15 @@ export async function POST(request: NextRequest) {
   let existing = null;
   if (visitorId) {
     existing = await prisma.visitor.findUnique({ where: { visitorId } });
+    if (!existing && ip && ip !== 'unknown' && isMergeableDevice(bodyDevice)) {
+      // Same IP + same specific device model = same physical machine that
+      // came back with a new visitor id. Adopt its existing row instead of
+      // creating a duplicate.
+      existing = await prisma.visitor.findFirst({
+        where: { ip, device: bodyDevice },
+        orderBy: { lastSeen: 'desc' },
+      });
+    }
   } else if (ip) {
     existing = await prisma.visitor.findFirst({
       where: { ip },

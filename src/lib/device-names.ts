@@ -390,6 +390,29 @@ export function sanitizeDevice(value: unknown): string {
     .slice(0, 60);
 }
 
+// Labels too generic to identify a physical device (UA-parse fallbacks).
+const GENERIC_DEVICES = new Set([
+  '',
+  'Unknown',
+  'Windows',
+  'Linux',
+  'Mac',
+  'Android',
+  'iPhone',
+  'iPad',
+  'iPod',
+]);
+
+/**
+ * Whether a device label is specific enough to use as a merge key when the
+ * same physical machine shows up again with a new visitor id (cleared
+ * storage, second browser, PWA vs tab, ...). Generic labels like "Windows"
+ * would falsely merge unrelated devices behind the same NAT.
+ */
+export function isMergeableDevice(device: string): boolean {
+  return !!device && !GENERIC_DEVICES.has(device);
+}
+
 /**
  * Resolve a raw device model code (e.g. "RMX3085", "SM-S928B") to a
  * marketing-friendly name. Falls back to the raw code when unknown.
