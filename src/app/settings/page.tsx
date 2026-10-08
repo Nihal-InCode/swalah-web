@@ -507,9 +507,27 @@ export default function SettingsPage() {
         )}
 
         {/* About */}
-        <section className="text-center py-8 opacity-50">
+        <section className="text-center py-8 opacity-60">
           <p className="text-sm">{APP_NAME} v1.0.0</p>
-          <p className="text-xs mt-1">by nihalch.exe</p>
+          <p className="text-xs mt-1">
+            by{' '}
+            <a
+              href="https://www.instagram.com/nihalch.exe"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 align-middle opacity-80 hover:opacity-100 underline underline-offset-2 decoration-current/40 hover:decoration-current transition"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icon/instagram.png"
+                alt="Instagram"
+                width={14}
+                height={14}
+                className="inline-block rounded-[3px]"
+              />
+              nihalch.exe
+            </a>
+          </p>
         </section>
       </main>
     </div>
