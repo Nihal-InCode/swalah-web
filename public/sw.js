@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yawmi-v5';
+const CACHE_NAME = 'yawmi-v6';
 const AUDIO_CACHE = 'yawmi-audio-v2';
 const ASSETS = [
   '/',
@@ -49,7 +49,34 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.pathname.startsWith('/api/')) return;
+  if (event.request.method !== 'GET') return;
 
+  // Let Next.js router payloads (RSC / prefetch) go straight to the network.
+  // They share the page URL in the cache key, so caching them would poison
+  // the HTML entry (and serving cached HTML to them breaks client-side nav).
+  if (event.request.headers.get('RSC') || event.request.headers.get('Next-Router-Prefetch')) {
+    return;
+  }
+
+  // Page navigations: network-first so updates go live immediately,
+  // with the cache only as the offline fallback.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Static assets (hashed chunks, fonts, images): cache-first with
+  // a background refresh so the next load picks up new versions.
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetched = fetch(event.request).then((response) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useSettings } from '@/components/ThemeProvider';
 import DhikrSection from '@/components/DhikrSection';
 import AutoScroll from '@/components/AutoScroll';
@@ -173,13 +174,13 @@ export default function ReaderPage() {
               {APP_NAME}
             </h1>
           </AdminGate>
-          <a
+          <Link
             href="/settings"
             className="p-2 rounded-full hover:bg-black/10 transition-colors"
             style={{ color: currentMode.titleColor }}
           >
             ⚙️
-          </a>
+          </Link>
         </div>
       </header>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ReadingMode, READING_MODES, getReadingMode, isDarkMode } from '@/lib/constants';
 
 interface Settings {
@@ -47,7 +47,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadSettings = useCallback(() => {
     fetch('/api/settings')
       .then(res => res.json())
       .then(data => {
@@ -67,6 +67,29 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  // Re-sync from the server whenever this document comes back to the
+  // foreground: tab switches, PWA re-focus, and back/forward cache restores
+  // all resume with a stale React tree that would otherwise need a manual
+  // reload to pick up settings changed elsewhere.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadSettings();
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) loadSettings();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, [loadSettings]);
 
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
