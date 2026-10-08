@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSettings } from '@/components/ThemeProvider';
 import { READING_MODES, AVAILABLE_FONTS, APP_NAME } from '@/lib/constants';
+import { buildUpiUrl, canOpenUpiApp, openUpiApp, UPI_ID } from '@/lib/upi';
 import Link from 'next/link';
 
 export default function SettingsPage() {
@@ -11,6 +12,34 @@ export default function SettingsPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadComplete, setDownloadComplete] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [copied, setCopied] = useState(false);
+
+  const handleSupportClick = async () => {
+    if (canOpenUpiApp()) {
+      openUpiApp();
+      return;
+    }
+    setShowSupport(true);
+    if (!qrDataUrl) {
+      try {
+        const QRCode = (await import('qrcode')).default;
+        const url = await QRCode.toDataURL(buildUpiUrl(), { width: 240, margin: 1 });
+        setQrDataUrl(url);
+      } catch {
+        // QR unavailable -> copy-only fallback still shown
+      }
+    }
+  };
+
+  const handleCopyUpi = async () => {
+    try {
+      await navigator.clipboard.writeText(UPI_ID);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {}
+  };
 
   const handleExportJson = async () => {
     const res = await fetch('/api/dhikr');
@@ -415,6 +444,63 @@ export default function SettingsPage() {
             </button>
           </div>
         </section>
+
+        {/* Support Project */}
+        <section>
+          <h2 className="text-lg font-bold mb-4" style={{ color: currentMode.titleColor }}>
+            Support Project
+          </h2>
+          <p className="text-sm opacity-70 mb-3">
+            If {APP_NAME} helps you, consider supporting its development 🤍
+          </p>
+          <button
+            onClick={handleSupportClick}
+            className="w-full p-3 rounded-lg border border-current/20 hover:bg-black/5 transition font-medium"
+          >
+            💚 Support this project
+          </button>
+        </section>
+
+        {/* Support modal (iOS / desktop / no UPI app) */}
+        {showSupport && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            onClick={() => setShowSupport(false)}
+          >
+            <div
+              className="rounded-xl p-6 max-w-sm w-full text-center space-y-4 border border-current/20"
+              style={{ backgroundColor: currentMode.background, color: currentMode.text }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-bold" style={{ color: currentMode.titleColor }}>
+                Support {APP_NAME}
+              </h3>
+              <p className="text-sm opacity-70">
+                Scan this QR code with any UPI app (GPay, PhonePe, Paytm, BHIM), or copy the UPI ID.
+              </p>
+              {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={qrDataUrl} alt={`UPI QR code for ${UPI_ID}`} className="mx-auto rounded-lg bg-white p-2" width={240} height={240} />
+              ) : (
+                <div className="w-[240px] h-[240px] mx-auto flex items-center justify-center bg-black/5 rounded-lg text-sm opacity-60">
+                  QR unavailable
+                </div>
+              )}
+              <button
+                onClick={handleCopyUpi}
+                className="w-full p-3 rounded-lg border border-current/20 hover:bg-black/5 transition font-mono text-sm"
+              >
+                {copied ? '✓ Copied!' : `Copy UPI ID: ${UPI_ID}`}
+              </button>
+              <button
+                onClick={() => setShowSupport(false)}
+                className="w-full p-2 text-sm opacity-60 hover:opacity-100 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* About */}
         <section className="text-center py-8 opacity-50">
